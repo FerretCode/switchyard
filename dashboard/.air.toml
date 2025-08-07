@@ -1,0 +1,20 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/app/dashboard ./cmd/dashboard/"
+bin = "tmp/app"
+
+full_bin = "chmod +x ./tmp/app/dashboard && ./tmp/app/dashboard"
+log = "air_errors.log"
+
+include_ext = ["go", "yml", "html"]
+exclude_dir = ["tmp"]
+
+delay = 1000
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true

@@ -1,0 +1,147 @@
+services:
+  autoscale:
+    build: 
+      context: ./autoscale
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3004:3000
+    env_file:
+      .env
+    environment:
+      - PORT
+      - DEV
+      - DATABASE_URL
+      - CACHE_URL
+    volumes:
+      - ./autoscale/:/app
+    depends_on:
+      - postgres
+      - redis
+
+  dashboard:
+    build: 
+      context: ./dashboard
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3003:3000
+    env_file:
+      .env
+    environment:
+      - PORT
+      - DEV
+      - DATABASE_URL
+      - CACHE_URL
+    volumes:
+      - ./dashboard/:/app
+    depends_on:
+      - postgres
+      - redis
+
+  incident:
+    build: 
+      context: ./incident
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3002:3000
+    env_file:
+      .env
+    environment:
+      - PORT
+      - DEV
+      - DATABASE_URL
+      - CACHE_URL
+    volumes:
+      - ./incident/:/app
+    depends_on:
+      - postgres
+      - redis
+
+  feature-flags:
+    build: 
+      context: ./feature-flags
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3001:3000
+    env_file:
+      .env
+    environment:
+      - PORT
+      - DEV
+      - DATABASE_URL
+      - CACHE_URL
+    volumes:
+      - ./feature-flags:/app
+    depends_on:
+      - postgres
+      - redis
+
+  scheduler:
+    build: 
+      context: ./scheduler
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3000:3000
+    env_file:
+      .env
+    environment:
+      - PORT
+      - DEV
+      - DATABASE_URL
+      - CACHE_URL
+    volumes:
+      - ./scheduler/:/app
+    depends_on:
+      - postgres
+      - redis
+
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: rabbitmq
+    hostname: rabbitmq.switchyard
+    restart: always
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    configs:
+      - source: rabbitmq-plugins
+        target: /etc/rabbitmq/enabled_plugins
+    volumes:
+      - rabbitmq-lib:/var/lib/rabbitmq/
+      - rabbitmq-log:/var/log/rabbitmq
+
+  redis:
+    image: "redis:alpine"
+    hostname: redis.switchyard
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:14-alpine
+    hostname: postgres.switchyard
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_USER=root
+      - POSTGRES_DB=postgres
+
+volumes:
+  postgres-data:
+  rabbitmq-lib:
+    driver: local
+  rabbitmq-log:
+    driver: local
+
+configs:
+  rabbitmq-plugins:
+    content: "[rabbitmq_management]."

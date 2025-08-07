@@ -1,0 +1,20 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/app/feature-flags ./cmd/feature-flags/"
+bin = "tmp/app"
+
+full_bin = "chmod +x ./tmp/app/feature-flags && ./tmp/app/feature-flags"
+log = "air_errors.log"
+
+include_ext = ["go", "yml", "html"]
+exclude_dir = ["tmp"]
+
+delay = 1000
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true

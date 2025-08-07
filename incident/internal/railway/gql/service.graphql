@@ -1,0 +1,16 @@
+query Service($serviceId: String!) {
+  service(id: $serviceId) {
+    id
+    deployments {
+      edges {
+        node {
+          id
+          status
+          statusUpdatedAt
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  }
+}
