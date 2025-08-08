@@ -30,7 +30,7 @@ A plug-and-play Railway template for feature flags, autoscaling, worker scheduli
 #### Worker Considerations
 
 - Your workers must use manual message acknowledgement, due to how Switchyard declares queues to ensure quality of service.
-- Switchyard exposes options an option that lets you set how many messages each worker can process at once.
+- Switchyard exposes an option that lets you set how many messages each worker can process at once.
 
 Find some example worker code [below.](#example-worker)
 
