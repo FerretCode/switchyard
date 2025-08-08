@@ -1,8 +1,8 @@
 package types
 
 type Config struct {
-	Port        string `env:"PORT"`
-	DatabaseUrl string `env:"DATABASE_URL"`
+	Port        string `env:"PORT" json:"port"`
+	DatabaseUrl string `env:"DATABASE_URL" json:"database_url"`
 }
 
 type Flag struct {
