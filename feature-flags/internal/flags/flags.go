@@ -15,20 +15,18 @@ import (
 )
 
 type FlagsService struct {
-	Logger    *slog.Logger
-	Config    *types.Config
-	FlagStore *types.FlagStore
-	Queries   *repositories.Queries
-	Context   context.Context
+	Logger  *slog.Logger
+	Config  *types.Config
+	Queries *repositories.Queries
+	Context context.Context
 }
 
-func NewFlagsService(logger *slog.Logger, config *types.Config, flagStore *types.FlagStore, queries *repositories.Queries, context context.Context) FlagsService {
+func NewFlagsService(logger *slog.Logger, config *types.Config, queries *repositories.Queries, context context.Context) FlagsService {
 	return FlagsService{
-		Logger:    logger,
-		Config:    config,
-		FlagStore: flagStore,
-		Context:   context,
-		Queries:   queries,
+		Logger:  logger,
+		Config:  config,
+		Context: context,
+		Queries: queries,
 	}
 }
 

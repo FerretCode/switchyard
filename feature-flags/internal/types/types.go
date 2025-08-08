@@ -1,7 +1,5 @@
 package types
 
-import "sync"
-
 type Config struct {
 	Port        string `env:"PORT"`
 	DatabaseUrl string `env:"DATABASE_URL"`
@@ -18,9 +16,4 @@ type Rule struct {
 	Field    string `json:"field"`
 	Operator string `json:"operator"`
 	Value    string `json:"value"`
-}
-
-type FlagStore struct {
-	Flags map[int]Flag
-	Mutex sync.Mutex
 }

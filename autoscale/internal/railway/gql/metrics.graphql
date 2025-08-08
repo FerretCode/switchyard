@@ -1,0 +1,9 @@
+query Deployment($serviceId: String!, $measurements: [MetricMeasurement!]!, $startDate: DateTime!) {
+  metrics(serviceId: $serviceId, measurements: $measurements, startDate: $startDate) {
+    measurement
+    values {
+      ts
+      value
+    }
+  }
+}

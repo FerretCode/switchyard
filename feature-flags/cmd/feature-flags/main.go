@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"sync"
 
 	"github.com/caarlos0/env"
 	"github.com/ferretcode/switchyard/feature-flags/internal/flags"
@@ -19,7 +18,6 @@ import (
 
 var logger *slog.Logger
 var config types.Config
-var flagStore types.FlagStore
 
 func main() {
 	logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -47,12 +45,7 @@ func main() {
 	ctx := context.Background()
 	queries := repositories.New(conn)
 
-	flagStore := types.FlagStore{
-		Mutex: sync.Mutex{},
-		Flags: make(map[int]types.Flag),
-	}
-
-	flagService := flags.NewFlagsService(logger, &config, &flagStore, queries, ctx)
+	flagService := flags.NewFlagsService(logger, &config, queries, ctx)
 
 	r := chi.NewRouter()
 

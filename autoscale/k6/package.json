@@ -1,0 +1,12 @@
+{
+    "name": "switchyard-autoscaler",
+    "version": "1.0.0",
+    "main": "http-test.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "ferretcode",
+    "license": "ISC",
+    "description": "k6 load testing for Switchyard's autoscaler"
+}
