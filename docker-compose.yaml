@@ -1,8 +1,9 @@
 services:
   autoscale:
-    build: 
+    build:
       context: ./autoscale
       dockerfile: Dockerfile.dev
+    hostname: autoscale.switchyard
     ports:
       - 3004:3000
     env_file:
@@ -15,8 +16,10 @@ services:
     volumes:
       - ./autoscale/:/app
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   dashboard:
     build: 
@@ -34,8 +37,10 @@ services:
     volumes:
       - ./dashboard/:/app
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   incident:
     build: 
@@ -53,8 +58,10 @@ services:
     volumes:
       - ./incident/:/app
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   feature-flags:
     build: 
@@ -91,8 +98,12 @@ services:
     volumes:
       - ./scheduler/:/app
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   rabbitmq:
     image: rabbitmq:latest
@@ -102,6 +113,12 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin
@@ -128,6 +145,12 @@ services:
     hostname: postgres.switchyard
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     volumes:
       - ./postgres:/var/lib/postgresql/data
     environment:

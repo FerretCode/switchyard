@@ -13,6 +13,7 @@ import (
 	"github.com/ferretcode/switchyard/autoscale/internal/repositories"
 	"github.com/ferretcode/switchyard/autoscale/internal/types"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 
@@ -84,6 +85,9 @@ func main() {
 	autoscalingService := autoscale.NewAutoscaleService(logger, &config, &gqlQueries, queries, ctx, &serviceHistoryCache)
 
 	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
 	r.Route("/autoscale", func(r chi.Router) {
 		r.Post("/register-service", func(w http.ResponseWriter, r *http.Request) {

@@ -42,6 +42,11 @@ func (f *FlagsService) Create(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("error parsing request body: %w", err)
 	}
 
+	if requestFlag.Name == "" {
+		http.Error(w, "feature flag name must not be empty", http.StatusBadRequest)
+		return nil
+	}
+
 	featureFlag, err := f.Queries.CreateFeatureFlag(f.Context, repositories.CreateFeatureFlagParams{
 		Name:    requestFlag.Name,
 		Enabled: requestFlag.Enabled,

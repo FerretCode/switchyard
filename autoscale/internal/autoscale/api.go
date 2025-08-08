@@ -23,6 +23,11 @@ func (a *AutoscaleService) RegisterService(w http.ResponseWriter, r *http.Reques
 		return fmt.Errorf("error parsing request body: %w", err)
 	}
 
+	if registerServiceRequest.ServiceId == "" {
+		http.Error(w, "service id must not be empty", http.StatusBadRequest)
+		return nil
+	}
+
 	_, err = a.Queries.CreateService(a.Context, repositories.CreateServiceParams{
 		ServiceID: registerServiceRequest.ServiceId,
 		JobName: sql.NullString{
