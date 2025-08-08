@@ -8,17 +8,17 @@ import (
 )
 
 type Config struct {
-	Port                                  string        `env:"PORT" json:"port"`
-	IncidentAnalysisWindow                time.Duration `env:"INCIDENT_ANALYSIS_WINDOW" json:"incident_analysis_window"`
-	IncidentAnalysisErrorThreshold        int           `env:"INCIDENT_ANALYSIS_ERROR_THRESHOLD" json:"incident_analysis_error_threshold"`
-	ServiceMonitorPollingRate             int           `env:"SERVICE_MONITOR_POLLING_RATE" json:"service_monitor_polling_rate"`
-	ServiceMonitorPollingTimeout          int           `env:"SERVICE_MONITOR_POLLING_TIMEOUT" json:"service_monitor_polling_timeout"`
-	ServiceMonitorInterestedStatusChanges []string      `env:"SERVICE_MONITOR_INTERESTED_STATUS_CHANGES" json:"service_monitor_interested_status_changes"`
-	RailwayApiKey                         string        `env:"RAILWAY_API_KEY" json:"railway_api_key"`
-	RailwayEnvironmentId                  string        `env:"RAILWAY_ENVIRONMENT_ID" json:"railway_environment_id"`
-	RailwayServiceIds                     []string      `env:"RAILWAY_SERVICE_IDS" json:"railway_service_ids"`
-	IncidentReportWebhookUrl              string        `env:"INCIDENT_REPORT_WEBHOOK_URL" json:"incident_report_webhook_url"`
-	IncidentReportAdditionalHeaders       string        `env:"INCIDENT_REPORT_ADDITIONAL_HEADERS" json:"incident_report_additional_headers"`
+	Port                                  string        `env:"PORT" json:"port,omitempty"`
+	IncidentAnalysisWindow                time.Duration `env:"INCIDENT_ANALYSIS_WINDOW" json:"incident_analysis_window,omitempty"`
+	IncidentAnalysisErrorThreshold        int           `env:"INCIDENT_ANALYSIS_ERROR_THRESHOLD" json:"incident_analysis_error_threshold,omitempty"`
+	ServiceMonitorPollingRate             int           `env:"SERVICE_MONITOR_POLLING_RATE" json:"service_monitor_polling_rate,omitempty"`
+	ServiceMonitorPollingTimeout          int           `env:"SERVICE_MONITOR_POLLING_TIMEOUT" json:"service_monitor_polling_timeout,omitempty"`
+	ServiceMonitorInterestedStatusChanges []string      `env:"SERVICE_MONITOR_INTERESTED_STATUS_CHANGES" json:"service_monitor_interested_status_changes,omitempty"`
+	RailwayApiKey                         string        `env:"RAILWAY_API_KEY" json:"railway_api_key,omitempty"`
+	RailwayEnvironmentId                  string        `env:"RAILWAY_ENVIRONMENT_ID" json:"railway_environment_id,omitempty"`
+	RailwayServiceIds                     []string      `env:"RAILWAY_SERVICE_IDS" json:"railway_service_ids,omitempty"`
+	IncidentReportWebhookUrl              string        `env:"INCIDENT_REPORT_WEBHOOK_URL" json:"incident_report_webhook_url,omitempty"`
+	IncidentReportAdditionalHeaders       string        `env:"INCIDENT_REPORT_ADDITIONAL_HEADERS" json:"incident_report_additional_headers,omitempty"`
 }
 
 type Logline struct {
