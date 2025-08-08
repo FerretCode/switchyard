@@ -1,4 +1,19 @@
 services:
+  configurator:
+    build:
+      context: ./configurator
+      dockerfile: ./Dockerfile.dev
+    hostname: configurator.switchyard
+    ports:
+      - 3005:3000
+    volumes:
+      - ./configurator/:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   autoscale:
     build:
       context: ./autoscale
@@ -6,13 +21,6 @@ services:
     hostname: autoscale.switchyard
     ports:
       - 3004:3000
-    env_file:
-      .env
-    environment:
-      - PORT
-      - DEV
-      - DATABASE_URL
-      - CACHE_URL
     volumes:
       - ./autoscale/:/app
     depends_on:
@@ -27,13 +35,6 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - 3003:3000
-    env_file:
-      .env
-    environment:
-      - PORT
-      - DEV
-      - DATABASE_URL
-      - CACHE_URL
     volumes:
       - ./dashboard/:/app
     depends_on:
@@ -48,13 +49,6 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - 3002:3000
-    env_file:
-      .env
-    environment:
-      - PORT
-      - DEV
-      - DATABASE_URL
-      - CACHE_URL
     volumes:
       - ./incident/:/app
     depends_on:
@@ -69,13 +63,6 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - 3001:3000
-    env_file:
-      .env
-    environment:
-      - PORT
-      - DEV
-      - DATABASE_URL
-      - CACHE_URL
     volumes:
       - ./feature-flags:/app
     depends_on:
@@ -88,13 +75,6 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - 3000:3000
-    env_file:
-      .env
-    environment:
-      - PORT
-      - DEV
-      - DATABASE_URL
-      - CACHE_URL
     volumes:
       - ./scheduler/:/app
     depends_on:
