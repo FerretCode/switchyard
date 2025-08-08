@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ferretcode/switchyard/incident/internal/types"
 	"github.com/ferretcode/switchyard/incident/internal/webhook"
+	"github.com/ferretcode/switchyard/incident/pkg/types"
 )
 
 var lastIncidentSent time.Time

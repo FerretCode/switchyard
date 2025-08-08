@@ -1,6 +1,6 @@
 package flags
 
-import "github.com/ferretcode/switchyard/feature-flags/internal/types"
+import "github.com/ferretcode/switchyard/feature-flags/pkg/types"
 
 const PostgresDuplicateKeyErrorCode = "23505"
 

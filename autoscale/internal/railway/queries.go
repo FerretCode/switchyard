@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/ferretcode/switchyard/autoscale/internal/railway/gql"
-	"github.com/ferretcode/switchyard/autoscale/internal/types"
+	"github.com/ferretcode/switchyard/autoscale/pkg/types"
 )
 
 type QueryService struct {

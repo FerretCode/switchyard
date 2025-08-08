@@ -1,7 +1,7 @@
 package prometheus
 
 import (
-	"github.com/ferretcode/switchyard/incident/internal/types"
+	"github.com/ferretcode/switchyard/incident/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

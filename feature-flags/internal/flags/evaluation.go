@@ -3,7 +3,7 @@ package flags
 import (
 	"strings"
 
-	"github.com/ferretcode/switchyard/feature-flags/internal/types"
+	"github.com/ferretcode/switchyard/feature-flags/pkg/types"
 )
 
 func evaluateFlag(flag types.Flag, context map[string]string) bool {

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	messagebus "github.com/ferretcode/switchyard/scheduler/internal/message_bus"
-	"github.com/ferretcode/switchyard/scheduler/internal/types"
+	"github.com/ferretcode/switchyard/scheduler/pkg/types"
 	"github.com/redis/go-redis/v9"
 )
 

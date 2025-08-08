@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/ferretcode/switchyard/autoscale/internal/railway/gql"
-	"github.com/ferretcode/switchyard/autoscale/internal/types"
+	"github.com/ferretcode/switchyard/autoscale/pkg/types"
 )
 
 func (a *AutoscaleService) getCurrentReplicas(project *gql.ProjectData, serviceId string) int {

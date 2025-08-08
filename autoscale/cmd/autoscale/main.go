@@ -11,7 +11,7 @@ import (
 	"github.com/ferretcode/switchyard/autoscale/internal/autoscale"
 	"github.com/ferretcode/switchyard/autoscale/internal/railway"
 	"github.com/ferretcode/switchyard/autoscale/internal/repositories"
-	"github.com/ferretcode/switchyard/autoscale/internal/types"
+	"github.com/ferretcode/switchyard/autoscale/pkg/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"

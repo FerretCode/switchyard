@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ferretcode/switchyard/scheduler/internal/types"
+	"github.com/ferretcode/switchyard/scheduler/pkg/types"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"

@@ -9,7 +9,7 @@ import (
 	"github.com/ferretcode/switchyard/autoscale/internal/railway"
 	"github.com/ferretcode/switchyard/autoscale/internal/railway/gql"
 	"github.com/ferretcode/switchyard/autoscale/internal/repositories"
-	"github.com/ferretcode/switchyard/autoscale/internal/types"
+	"github.com/ferretcode/switchyard/autoscale/pkg/types"
 )
 
 const (

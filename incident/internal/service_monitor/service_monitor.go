@@ -10,8 +10,8 @@ import (
 
 	"github.com/ferretcode/switchyard/incident/internal/railway"
 	"github.com/ferretcode/switchyard/incident/internal/railway/gql"
-	"github.com/ferretcode/switchyard/incident/internal/types"
 	"github.com/ferretcode/switchyard/incident/internal/webhook"
+	"github.com/ferretcode/switchyard/incident/pkg/types"
 )
 
 type ServiceMonitorService struct {

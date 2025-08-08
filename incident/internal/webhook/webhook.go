@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ferretcode/switchyard/incident/internal/types"
+	"github.com/ferretcode/switchyard/incident/pkg/types"
 )
 
 type WebhookService struct {

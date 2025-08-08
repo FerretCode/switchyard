@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/ferretcode/switchyard/feature-flags/internal/repositories"
-	"github.com/ferretcode/switchyard/feature-flags/internal/types"
+	"github.com/ferretcode/switchyard/feature-flags/pkg/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/lib/pq"
 )

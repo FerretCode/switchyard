@@ -9,7 +9,7 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/ferretcode/switchyard/feature-flags/internal/flags"
 	"github.com/ferretcode/switchyard/feature-flags/internal/repositories"
-	"github.com/ferretcode/switchyard/feature-flags/internal/types"
+	"github.com/ferretcode/switchyard/feature-flags/pkg/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
