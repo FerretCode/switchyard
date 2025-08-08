@@ -31,6 +31,10 @@ A plug-and-play Railway template for feature flags, autoscaling, worker scheduli
 
 - Your workers must use manual message acknowledgement, due to how Switchyard declares queues to ensure quality of service.
 - Switchyard exposes an option that lets you set how many messages each worker can process at once.
+- Workers will pull directly from the message bus under the `jobs` topic, containing a `job_id` and `job_context` field.
+    - The job context is information provided directly from the host app with context for the worker to perform an action.
+    - The job ID is used by both the worker and the scheduler to ensure job idempotency.
+- The worked should directly check the Redis cache with the provided job ID to ensure that it has not already been processed before.
 
 Find some example worker code [below.](#example-worker)
 
