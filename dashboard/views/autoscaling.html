@@ -1,0 +1,198 @@
+<div id="autoscaling" class="section">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Autoscaling Services</h1>
+            <p class="text-base-content/70 mt-2">
+                Configure automatic scaling policies for your services
+            </p>
+        </div>
+        <div class="flex items-center gap-2 text-sm text-base-content/60">
+            <i class="fas fa-clock"></i>
+            <span id="last-refresh-time">Last refreshed: --:--:--</span>
+        </div>
+    </div>
+
+    <div class="grid gap-6 grid-cols-1" id="autoscaling-services"></div>
+</div>
+
+<script>
+    function updateRefreshTime() {
+        const now = new Date();
+        const formattedTime = now.toLocaleTimeString();
+        document.getElementById(
+            "last-refresh-time"
+        ).textContent = `Last refreshed: ${formattedTime}`;
+    }
+
+    async function fetchAutoscalingServices() {
+        try {
+            const response = await fetch("/api/autoscale/list-services");
+            if (!response.ok) {
+                throw new Error("Failed to fetch autoscaling services");
+            }
+            const services = await response.json();
+            console.log("Fetched autoscaling services:", services);
+            renderAutoscalingServices(services.services);
+            updateRefreshTime();
+        } catch (error) {
+            console.error("Error fetching autoscaling services:", error);
+        }
+    }
+
+    function renderAutoscalingServices(services) {
+        services.sort((a, b) => b.enabled - a.enabled);
+
+        const container = document.getElementById("autoscaling-services");
+        container.innerHTML = "";
+
+        services.forEach((service) => {
+            const card = document.createElement("div");
+            card.className = "card bg-base-100 shadow-xl card-hover";
+            card.innerHTML = `
+                <div class="card-body">
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div class="avatar placeholder">
+                                <div class="bg-primary text-primary-content rounded-lg w-12">
+                                    <i class="fas fa-server text-xl"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h3 class="text-xl font-semibold">${
+                                        service.job_name
+                                    }</h3>
+                                    <div class="badge badge-error">${
+                                        service.environment_name
+                                    }</div>
+                                </div>
+                                <p class="text-base-content/70 font-mono text-sm">${
+                                    service.service_id
+                                }</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="badge badge-${
+                                service.enabled ? "success" : "error"
+                            }">
+                                <i class="mr-2 fas fa-${
+                                    service.enabled
+                                        ? "check-circle"
+                                        : "exclamation-circle"
+                                }"></i>
+                                ${service.enabled ? "Enabled" : "Disabled"}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="stat bg-base-200 rounded-lg">
+                            <div class="stat-figure text-primary">
+                                <i class="fas fa-layer-group text-2xl"></i>
+                            </div>
+                            <div class="stat-title text-xs">Replicas</div>
+                            <div class="stat-value text-lg">${
+                                service.min_replicas
+                            } - ${service.max_replicas}</div>
+                        </div>
+
+                        <div class="stat bg-base-200 rounded-lg">
+                            <div class="stat-figure text-success">
+                                <i class="fas fa-microchip text-2xl"></i>
+                            </div>
+                            <div class="stat-title text-xs">CPU Trigger</div>
+                            <div class="stat-value text-lg">${
+                                service.cpu_upscale_threshold
+                            }%</div>
+                        </div>
+
+                        <div class="stat bg-base-200 rounded-lg">
+                            <div class="stat-figure text-secondary">
+                                <i class="fas fa-memory text-2xl"></i>
+                            </div>
+                            <div class="stat-title text-xs">Memory Trigger</div>
+                            <div class="stat-value text-lg">${
+                                service.memory_upscale_threshold
+                            }%</div>
+                        </div>
+
+                        <div class="stat bg-base-200 rounded-lg">
+                            <div class="stat-figure text-warning">
+                                <i class="fas fa-clock text-2xl"></i>
+                            </div>
+                            <div class="stat-title text-xs">Cooldowns</div>
+                            <div class="stat-value text-sm">
+                                <div>Up: ${service.upscale_cooldown}</div>
+                                <div>Down: ${service.downscale_cooldown}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex items-center justify-between pt-4 border-t border-base-300"
+                    >
+                        <div
+                            class="flex items-center gap-4 text-sm text-base-content/60"
+                        >
+                            <span>Last deployment: ${
+                                service.last_scaled_at
+                            }</span>
+                            <span>Current replicas: ${service.replicas}</span>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button class="btn btn-outline btn-sm">
+                                <a target="_blank" href="https://railway.com/project/${
+                                    service.project_id
+                                }/service/${
+                service.service_id
+            }/metrics?environmentId=${service.environment_id}">View Metrics</a>
+                            </button>
+                            <button class="btn btn-${
+                                service.enabled ? "danger" : "primary"
+                            } btn-sm" onclick="toggleService('${
+                service.service_id
+            }', ${service.enabled})">
+                                ${service.enabled ? "Disable" : "Enable"}
+                            </button>
+                            <button class="disabled btn btn-disabled btn-sm">
+                                Configure
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async function toggleService(serviceId, isEnabled) {
+        try {
+            const response = await fetch(
+                `/api/autoscale/toggle-service-registered?service=${serviceId}&enabled=${!isEnabled}`,
+                {
+                    method: "PATCH",
+                }
+            );
+            if (!response.ok) {
+                throw new Error("Failed to toggle service status");
+            }
+            fetchAutoscalingServices();
+        } catch (error) {
+            console.error("Error toggling service status:", error);
+        }
+    }
+
+    function startPolling(interval = 15000) {
+        console.log(
+            "Starting autoscaling services polling every",
+            interval,
+            "ms"
+        );
+        fetchAutoscalingServices();
+        setInterval(fetchAutoscalingServices, interval);
+    }
+
+    startPolling();
+    fetchAutoscalingServices();
+</script>

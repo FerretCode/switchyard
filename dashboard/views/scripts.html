@@ -1,0 +1,28 @@
+<script>
+    document.querySelectorAll(".nav-item").forEach((item) => {
+        item.addEventListener("click", (e) => {
+            e.preventDefault();
+            const section = item.dataset.section;
+
+            document
+                .querySelectorAll(".nav-item")
+                .forEach((nav) => nav.classList.remove("active"));
+            item.classList.add("active");
+
+            document
+                .querySelectorAll(".section")
+                .forEach((sec) => sec.classList.add("hidden"));
+            document.getElementById(section).classList.remove("hidden");
+
+            document.getElementById("drawer-toggle").checked = false;
+        });
+    });
+
+    function openModal(modalId) {
+        document.getElementById(modalId).showModal();
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).close();
+    }
+</script>

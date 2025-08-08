@@ -97,6 +97,10 @@ func main() {
 		r.Delete("/unregister-service/{id}", func(w http.ResponseWriter, r *http.Request) {
 			handleError(autoscalingService.UnregisterService(w, r), w, "autoscale/unregister")
 		})
+
+		r.Get("/list-services", func(w http.ResponseWriter, r *http.Request) {
+			handleError(autoscalingService.ListServices(w, r), w, "autoscale/list")
+		})
 	})
 
 	go autoscalingService.StartAutoscaling()

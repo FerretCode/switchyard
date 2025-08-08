@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en-US" data-theme="dark">
+
+<head>
+    <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- FONT -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: "Atkinson Hyperlegible", sans-serif;
+        }
+    </style>
+</head>
+
+<body class="text-2xl">
+    <div class="flex items-center justify-center h-screen w-screen">
+        <div class="bg-gray-800 rounded-box shadow-lg p-12">
+            <form method="POST" action="/auth/login">
+                <div class="flex flex-col gap-8">
+                    <label class="input">
+                        Username:
+                        <input type="text" name="username" required>
+                    </label>
+
+                    <label class="input">
+                        Password:
+                        <input type="password" name="password" required>
+                    </label>
+
+                    <button type="submit" class="btn bg-gray-600 px-8 py-2 shadow-sm rounded hover:cursor-pointer">
+                        Login
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

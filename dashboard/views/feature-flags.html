@@ -1,0 +1,155 @@
+<div id="feature-flags" class="section hidden">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Feature Flags</h1>
+            <p class="text-base-content/70 mt-2">Manage feature flags</p>
+        </div>
+        <button class="btn btn-primary" onclick="createEmptyFeatureFlag()">
+            <i class="fas fa-plus mr-2"></i>
+            New Flag
+        </button>
+    </div>
+
+    <div id="flags-container" class="grid gap-4">
+        <!-- Flags will be dynamically loaded here -->
+    </div>
+</div>
+
+<script>
+    async function fetchFeatureFlags() {
+        try {
+            const response = await fetch("/api/feature-flags/list");
+            if (!response.ok) throw new Error("Failed to fetch feature flags");
+            const flags = await response.json();
+            renderFeatureFlags(flags);
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    function renderFeatureFlags(flags) {
+        const container = document.getElementById("flags-container");
+        container.innerHTML = ""; // Clear existing content
+
+        flags.forEach((flag) => {
+            const flagCard = document.createElement("div");
+            flagCard.className = "card bg-base-100 shadow-xl card-hover";
+            flagCard.innerHTML = `
+                <div class="card-body">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <i class="fas fa-flag text-primary"></i>
+                                <h3 class="card-title text-xl">${flag.name}</h3>
+                                <div class="badge badge-warning">${
+                                    flag.environment || "default"
+                                }</div>
+                                <input
+                                    type="checkbox"
+                                    class="toggle toggle-success"
+                                    ${flag.enabled ? "checked" : ""}
+                                    onchange="toggleFeatureFlag('${
+                                        flag.name
+                                    }', this.checked)"
+                                />
+                            </div>
+                            <p class="text-base-content/70 mb-3">
+                                ${flag.description || "No description provided"}
+                            </p>
+                            <div class="flex items-center gap-4 text-sm text-base-content/60">
+                                <span>Rules: ${flag.rules.length}</span>
+                                <span>Updated: ${new Date(
+                                    flag.updatedAt
+                                ).toLocaleDateString()}</span>
+                                <div class="flex items-center gap-1 ${
+                                    flag.enabled ? "text-success" : "text-error"
+                                }">
+                                    <div class="w-2 h-2 rounded-full ${
+                                        flag.enabled ? "bg-success" : "bg-error"
+                                    }"></div>
+                                    <span>${
+                                        flag.enabled ? "Active" : "Inactive"
+                                    }</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dropdown dropdown-end">
+                            <label tabindex="0" class="btn btn-ghost btn-sm">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </label>
+                            <ul
+                                tabindex="0"
+                                class="dropdown-content menu p-2 shadow bg-base-200 rounded-box w-52"
+                            >
+                                <li>
+                                    <a><i class="fas fa-edit mr-2"></i>Edit</a>
+                                </li>
+                                <li>
+                                    <a class="text-error" onclick="deleteFeatureFlag('${
+                                        flag.name
+                                    }')">
+                                        <i class="fas fa-trash mr-2"></i>Delete
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(flagCard);
+        });
+    }
+
+    async function createEmptyFeatureFlag() {
+        const flagName = prompt("Enter a name for the new feature flag:");
+        if (!flagName) return;
+
+        try {
+            const response = await fetch("/api/feature-flags/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: flagName,
+                    enabled: false,
+                    rules: [],
+                }),
+            });
+            if (!response.ok) throw new Error("Failed to create feature flag");
+            fetchFeatureFlags();
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    async function toggleFeatureFlag(name, enabled) {
+        try {
+            const response = await fetch(`/api/feature-flags/update/${name}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled }),
+            });
+            if (!response.ok) throw new Error("Failed to update feature flag");
+            fetchFeatureFlags();
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    async function deleteFeatureFlag(name) {
+        if (!confirm("Are you sure you want to delete this feature flag?"))
+            return;
+
+        try {
+            const response = await fetch(`/api/feature-flags/delete/${name}`, {
+                method: "DELETE",
+            });
+            if (!response.ok) throw new Error("Failed to delete feature flag");
+            fetchFeatureFlags();
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    // Load feature flags on page load
+    document.addEventListener("DOMContentLoaded", fetchFeatureFlags);
+</script>

@@ -1,0 +1,254 @@
+<div id="incident-reporting" class="section hidden">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Incident Reporting</h1>
+            <p class="text-base-content/70 mt-2">
+                Configure alerts and reporting thresholds
+            </p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('incident-modal')">
+            <i class="fas fa-plus mr-2"></i>
+            New Report
+        </button>
+    </div>
+
+    <div class="tabs tabs-boxed mb-6">
+        <a class="tab tab-active" onclick="switchTab('reports')"
+            >Incident Reports</a
+        >
+        <a class="tab" onclick="switchTab('channels')">Alert Channels</a>
+    </div>
+
+    <div id="reports-tab" class="tab-content">
+        <div class="grid gap-4">
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="card-title text-xl">
+                                    Service Downtime Alert
+                                </h3>
+                                <div class="badge badge-success">Active</div>
+                            </div>
+                            <p class="text-base-content/70 mb-4">
+                                Trigger when any service is down for more than 2
+                                minutes
+                            </p>
+
+                            <div class="grid grid-cols-3 gap-4 mb-4">
+                                <div class="stat bg-base-200 rounded-lg">
+                                    <div class="stat-title text-xs">
+                                        Error Rate
+                                    </div>
+                                    <div class="stat-value text-lg">10%</div>
+                                </div>
+                                <div class="stat bg-base-200 rounded-lg">
+                                    <div class="stat-title text-xs">
+                                        Response Time
+                                    </div>
+                                    <div class="stat-value text-lg">5000ms</div>
+                                </div>
+                                <div class="stat bg-base-200 rounded-lg">
+                                    <div class="stat-title text-xs">
+                                        Downtime
+                                    </div>
+                                    <div class="stat-value text-lg">120s</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-base-content/60"
+                                    >Channels:</span
+                                >
+                                <div class="badge badge-primary badge-sm">
+                                    Critical Alerts
+                                </div>
+                                <div class="badge badge-primary badge-sm">
+                                    Engineering Team
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-ghost btn-sm">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="card-title text-xl">
+                                    High Error Rate
+                                </h3>
+                                <div class="badge badge-success">Active</div>
+                            </div>
+                            <p class="text-base-content/70 mb-4">
+                                Alert when error rate exceeds 5% for 5 minutes
+                            </p>
+
+                            <div class="grid grid-cols-3 gap-4 mb-4">
+                                <div class="stat bg-base-200 rounded-lg">
+                                    <div class="stat-title text-xs">
+                                        Error Rate
+                                    </div>
+                                    <div class="stat-value text-lg">5%</div>
+                                </div>
+                                <div class="stat bg-base-200 rounded-lg">
+                                    <div class="stat-title text-xs">
+                                        Response Time
+                                    </div>
+                                    <div class="stat-value text-lg">3000ms</div>
+                                </div>
+                                <div class="stat bg-base-200 rounded-lg">
+                                    <div class="stat-title text-xs">
+                                        Downtime
+                                    </div>
+                                    <div class="stat-value text-lg">60s</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-base-content/60"
+                                    >Channels:</span
+                                >
+                                <div class="badge badge-primary badge-sm">
+                                    Engineering Team
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-ghost btn-sm">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="channels-tab" class="tab-content hidden">
+        <div class="grid gap-4">
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="avatar placeholder">
+                                <div
+                                    class="bg-primary text-primary-content rounded-lg w-12"
+                                >
+                                    <i class="fab fa-slack text-xl"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold">
+                                    Critical Alerts
+                                </h3>
+                                <p class="text-base-content/70">
+                                    #alerts-critical
+                                </p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <div class="badge badge-info badge-sm">
+                                        slack
+                                    </div>
+                                    <div class="badge badge-error badge-sm">
+                                        critical
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <div class="badge badge-success">Enabled</div>
+                            <button class="btn btn-ghost btn-sm">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="avatar placeholder">
+                                <div
+                                    class="bg-secondary text-secondary-content rounded-lg w-12"
+                                >
+                                    <i class="fas fa-envelope text-xl"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold">
+                                    Engineering Team
+                                </h3>
+                                <p class="text-base-content/70">
+                                    engineering@railway.com
+                                </p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <div class="badge badge-info badge-sm">
+                                        email
+                                    </div>
+                                    <div class="badge badge-warning badge-sm">
+                                        high
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <div class="badge badge-success">Enabled</div>
+                            <button class="btn btn-ghost btn-sm">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-xl card-hover">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="avatar placeholder">
+                                <div
+                                    class="bg-accent text-accent-content rounded-lg w-12"
+                                >
+                                    <i class="fas fa-bell text-xl"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold">
+                                    PagerDuty Escalation
+                                </h3>
+                                <p class="text-base-content/70">
+                                    https://events.pagerduty.com/...
+                                </p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <div class="badge badge-info badge-sm">
+                                        pagerduty
+                                    </div>
+                                    <div class="badge badge-error badge-sm">
+                                        critical
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <div class="badge badge-error">Disabled</div>
+                            <button class="btn btn-ghost btn-sm">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

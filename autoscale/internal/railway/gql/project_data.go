@@ -51,6 +51,7 @@ type ServiceInstance struct {
 
 type Deployment struct {
 	CanRedeploy bool           `json:"canRedeploy"`
+	CreatedAt   string         `json:"createdAt"`
 	Id          string         `json:"id"`
 	Meta        DeploymentMeta `json:"meta"`
 }

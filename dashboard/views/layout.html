@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="garden">
+    <head>
+        <!-- ...existing code for head section... -->
+    </head>
+    <body class="bg-base-300">
+        <div class="drawer lg:drawer-open">
+            <input id="drawer-toggle" type="checkbox" class="drawer-toggle" />
+            <div class="drawer-content flex flex-col">
+                {{ template "header.html" . }}
+                <main class="flex-1 p-6">{{ block "content" . }}{{ end }}</main>
+            </div>
+            {{ template "sidebar.html" . }}
+        </div>
+        {{ template "scripts.html" . }}
+    </body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="garden">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Switchyard</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/daisyui@4.4.24/dist/full.min.css"
+            rel="stylesheet"
+            type="text/css"
+        />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+            rel="stylesheet"
+        />
+        <style>
+            .card-hover {
+                transition: all 0.2s ease;
+            }
+
+            .card-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            }
+
+            .status-indicator {
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+
+                50% {
+                    opacity: 0.7;
+                }
+            }
+        </style>
+    </head>
+
+    <body class="bg-base-300">
+        <div class="drawer lg:drawer-open">
+            <input id="drawer-toggle" type="checkbox" class="drawer-toggle" />
+
+            <div class="drawer-content flex flex-col">
+                <div class="navbar lg:hidden bg-base-100 shadow-lg">
+                    <div class="flex-none">
+                        <label
+                            for="drawer-toggle"
+                            class="btn btn-square btn-ghost"
+                        >
+                            <i class="fas fa-bars text-xl"></i>
+                        </label>
+                    </div>
+                    <div class="flex-1">
+                        <h1 class="text-xl font-bold">Switchyard Dashboard</h1>
+                    </div>
+                </div>
+
+                <main class="flex-1 p-6">
+                    {{ template "autoscaling.html" . }} {{ template
+                    "feature-flags.html" . }} {{ template
+                    "incident-reporting.html" . }}
+                </main>
+            </div>
+
+            <div class="drawer-side">
+                <label for="drawer-toggle" class="drawer-overlay"></label>
+                <aside
+                    class="w-64 min-h-full sidebar-gradient text-base-content"
+                >
+                    <div class="p-6 border-b border-base-300/20">
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-400 rounded-lg flex items-center justify-center"
+                            >
+                                <i class="fas fa-cog text-white"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold text-black">
+                                    Switchyard
+                                </h1>
+                                <p class="text-sm text-base-content/70">
+                                    Internal Dashboard
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4">
+                        <ul class="menu menu-lg gap-1">
+                            <li>
+                                <a
+                                    class="nav-item active"
+                                    data-section="autoscaling"
+                                >
+                                    <i class="fas fa-chart-line"></i>
+                                    <div>
+                                        <div class="font-medium">
+                                            Autoscaling
+                                        </div>
+                                        <div class="text-xs opacity-75">
+                                            Service scaling config
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a
+                                    class="nav-item"
+                                    data-section="feature-flags"
+                                >
+                                    <i class="fas fa-flag"></i>
+                                    <div>
+                                        <div class="font-medium">
+                                            Feature Flags
+                                        </div>
+                                        <div class="text-xs opacity-75">
+                                            Manage feature flags
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a
+                                    class="nav-item"
+                                    data-section="incident-reporting"
+                                >
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div>
+                                        <div class="font-medium">
+                                            Incident Reporting
+                                        </div>
+                                        <div class="text-xs opacity-75">
+                                            Configure alerts
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <script>
+            document.querySelectorAll(".nav-item").forEach((item) => {
+                item.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const section = item.dataset.section;
+
+                    document
+                        .querySelectorAll(".nav-item")
+                        .forEach((nav) => nav.classList.remove("active"));
+                    item.classList.add("active");
+
+                    document
+                        .querySelectorAll(".section")
+                        .forEach((sec) => sec.classList.add("hidden"));
+                    document.getElementById(section).classList.remove("hidden");
+
+                    document.getElementById("drawer-toggle").checked = false;
+                });
+            });
+
+            function switchTab(tab) {
+                document
+                    .querySelectorAll(".tab")
+                    .forEach((t) => t.classList.remove("tab-active"));
+                event.target.classList.add("tab-active");
+
+                document
+                    .querySelectorAll(".tab-content")
+                    .forEach((content) => content.classList.add("hidden"));
+                document
+                    .getElementById(tab + "-tab")
+                    .classList.remove("hidden");
+            }
+
+            function openModal(modalId) {
+                document.getElementById(modalId).showModal();
+            }
+
+            function closeModal(modalId) {
+                document.getElementById(modalId).close();
+            }
+
+            document.querySelectorAll(".toggle").forEach((toggle) => {
+                toggle.addEventListener("change", function () {
+                    console.log("Toggle changed:", this.checked);
+                });
+            });
+
+            document.querySelectorAll(".modal").forEach((modal) => {
+                modal.addEventListener("click", function (e) {
+                    if (e.target === this) {
+                        this.close();
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>
