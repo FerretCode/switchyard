@@ -36,7 +36,7 @@ A plug-and-play Railway template for feature flags, autoscaling, worker scheduli
     -   The job ID is used by both the worker and the scheduler to ensure job idempotency.
 -   The worked should directly check the Redis cache with the provided job ID to ensure that it has not already been processed before.
 
-Find some example worker code [below.](./demo/worker/main.py)
+Find some example worker code [here.](./demo/worker/main.py)
 
 ![Autoscaling Services Dashboard Page](./images/autoscaling-dashboard.png "Autoscaling Dashboard")
 ![Job Scheduling Workflow Diagram](./images/job-scheduling.png "Job Scheduling Workflow")
