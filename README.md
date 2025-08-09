@@ -82,7 +82,7 @@ docker compose up --build
 
 Then:
 
--   Access the frontend at http://localhost:3002
+-   Access the frontend at http://localhost:3003
 -   Make web requests to Switchyard in your app
 -   Test out job scheduling
     -   Autoscaling is a no-op action in local development.
