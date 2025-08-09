@@ -47,6 +47,7 @@ services:
         build:
             context: ./incident
             dockerfile: Dockerfile.dev
+        hostname: incident-reporting.switchyard
         ports:
             - 3002:3000
         volumes:

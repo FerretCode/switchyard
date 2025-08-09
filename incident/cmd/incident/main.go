@@ -1,22 +1,30 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
 	"sync"
 
 	"github.com/caarlos0/env"
+	"github.com/ferretcode/switchyard/incident/internal/api"
 	"github.com/ferretcode/switchyard/incident/internal/ingest"
+	messagebus "github.com/ferretcode/switchyard/incident/internal/message_bus"
 	"github.com/ferretcode/switchyard/incident/internal/prometheus"
 	"github.com/ferretcode/switchyard/incident/internal/railway"
+	"github.com/ferretcode/switchyard/incident/internal/repositories"
 	servicemonitor "github.com/ferretcode/switchyard/incident/internal/service_monitor"
 	"github.com/ferretcode/switchyard/incident/internal/webhook"
 	"github.com/ferretcode/switchyard/incident/pkg/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	amqp "github.com/rabbitmq/amqp091-go"
+
+	_ "github.com/lib/pq"
 )
 
 var logger *slog.Logger
@@ -41,6 +49,22 @@ func main() {
 		return
 	}
 
+	conn, err := sqlx.Open("postgres", config.DatabaseUrl)
+	if err != nil {
+		logger.Error("error opening database connection", "err", err)
+		return
+	}
+	defer conn.Close()
+
+	messageBusConn, err := amqp.Dial(config.MessageBusUrl)
+	if err != nil {
+		logger.Error("error connecting to the message bus", "err", err)
+	}
+	defer messageBusConn.Close()
+
+	ctx := context.Background()
+	queries := repositories.New(conn)
+
 	gqlClient, err := railway.NewClient(&railway.GraphQLClient{
 		AuthToken: config.RailwayApiKey,
 		BaseURL:   "https://backboard.railway.app/graphql/v2",
@@ -58,17 +82,25 @@ func main() {
 		Mutex:       sync.Mutex{},
 	}
 
-	webhookService := webhook.NewWebhookService(logger, &config)
+	messageBusService := messagebus.NewMessageBusService(logger, messageBusConn, &config, ctx)
+	webhookService := webhook.NewWebhookService(logger, &config, queries, ctx, &messageBusService)
 	ingestService := ingest.NewIngestService(logger, &incidentStats, &config, &prometheusCounters, &webhookService)
 	serviceMonitorService := servicemonitor.NewServiceMonitorService(logger, &incidentStats, &config, &prometheusCounters, gqlClient, &deploymentCache, &webhookService)
+	apiService := api.NewApiService(logger, &config, queries, ctx)
 
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Post("/ingest", func(w http.ResponseWriter, r *http.Request) {
-		handleError(ingestService.Ingest(w, r), w, "ingest")
+	r.Route("/incident", func(r chi.Router) {
+		r.Post("/ingest", func(w http.ResponseWriter, r *http.Request) {
+			handleError(ingestService.Ingest(w, r), w, "ingest")
+		})
+
+		r.Get("/list-incident-reports", func(w http.ResponseWriter, r *http.Request) {
+			handleError(apiService.ListIncidentReports(w, r), w, "list-incident-reports")
+		})
 	})
 
 	r.Handle("/metrics", promhttp.Handler())

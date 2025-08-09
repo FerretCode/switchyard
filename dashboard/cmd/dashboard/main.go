@@ -10,6 +10,7 @@ import (
 	"github.com/ferretcode/switchyard/dashboard/internal/auth"
 	"github.com/ferretcode/switchyard/dashboard/internal/autoscale"
 	featureflags "github.com/ferretcode/switchyard/dashboard/internal/feature_flags"
+	incidentreporting "github.com/ferretcode/switchyard/dashboard/internal/incident_reporting"
 	"github.com/ferretcode/switchyard/dashboard/internal/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
@@ -67,6 +68,7 @@ func main() {
 	authService := auth.NewAuthService(&config)
 	autoscaleService := autoscale.NewAutoscaleService(logger, &config)
 	featureFlagsService := featureflags.NewFeatureFlagsService(logger, &config)
+	incidentReportingService := incidentreporting.NewIncidentReportingService(logger, &config)
 
 	r := chi.NewRouter()
 
@@ -85,6 +87,12 @@ func main() {
 
 	r.Route("/api", func(r chi.Router) {
 		// TODO: consider authentication middleware for dashboard routes
+
+		r.Route("/incident-reporting", func(r chi.Router) {
+			r.Get("/list-incident-reports", func(w http.ResponseWriter, r *http.Request) {
+				handleError(incidentReportingService.ListIncidentReports(w, r), w, "incident-reporting/list")
+			})
+		})
 
 		r.Route("/autoscale", func(r chi.Router) {
 			r.Get("/list-services", func(w http.ResponseWriter, r *http.Request) {

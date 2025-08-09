@@ -116,6 +116,7 @@ func (s *ServiceMonitorService) pollServiceId(serviceId string) error {
 				fmt.Sprintf("deployment status changed: %s -> %s", lastStatus, deployment.Node.Status),
 				serviceData.Service.Id,
 				deployment.Node.Id,
+				s.Config.RailwayEnvironmentId,
 			)
 			if err != nil {
 				return err

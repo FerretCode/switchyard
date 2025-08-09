@@ -9,6 +9,8 @@ import (
 
 type Config struct {
 	Port                                  string        `env:"PORT" json:"port,omitempty"`
+	DatabaseUrl                           string        `env:"DATABASE_URL" json:"database_url,omitempty"`
+	MessageBusUrl                         string        `env:"MESSAGE_BUS_URL" json:"message_bus_url,omitempty"`
 	IncidentAnalysisWindow                time.Duration `env:"INCIDENT_ANALYSIS_WINDOW" json:"incident_analysis_window,omitempty"`
 	IncidentAnalysisErrorThreshold        int           `env:"INCIDENT_ANALYSIS_ERROR_THRESHOLD" json:"incident_analysis_error_threshold,omitempty"`
 	ServiceMonitorPollingRate             int           `env:"SERVICE_MONITOR_POLLING_RATE" json:"service_monitor_polling_rate,omitempty"`
@@ -44,8 +46,9 @@ type DeploymentCache struct {
 }
 
 type IncidentReport struct {
-	ServiceId    string `json:"service_id"`
-	DeploymentId string `json:"deployment_id"`
-	Message      string `json:"message"`
-	Timestamp    int64  `json:"timestamp"`
+	ServiceId     string `json:"service_id"`
+	DeploymentId  string `json:"deployment_id"`
+	EnvironmentId string `json:"environment_id"`
+	Message       string `json:"message"`
+	Timestamp     int64  `json:"timestamp"`
 }

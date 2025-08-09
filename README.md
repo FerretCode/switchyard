@@ -36,8 +36,9 @@ A plug-and-play Railway template for feature flags, autoscaling, worker scheduli
     -   The job ID is used by both the worker and the scheduler to ensure job idempotency.
 -   The worked should directly check the Redis cache with the provided job ID to ensure that it has not already been processed before.
 
-Find some example worker code [below.](#example-worker)
+Find some example worker code [below.](./demo/worker/main.py)
 
+![Autoscaling Services Dashboard Page](./images/autoscaling-dashboard.png "Autoscaling Dashboard")
 ![Job Scheduling Workflow Diagram](./images/job-scheduling.png "Job Scheduling Workflow")
 
 ### Incident Reporting
@@ -47,6 +48,7 @@ Find some example worker code [below.](#example-worker)
 -   Your services are also monitored to watch for interesting status changes
 -   Switchyard forwards incident reports to a custom webhook ingest URL
 
+![Incident Reporting Dashboard Page](./images/incident-reporting-dashboard.png "Incident Reporting Dashboard Page")
 ![Incident Reporting Functionality](./images/incident-reporting.png "Incident Reporting")
 
 ### Feature Flags
@@ -56,6 +58,7 @@ Find some example worker code [below.](#example-worker)
     -   e.g., certain user groups/roles, a percentage of users, etc.
 -   Your services can request the Switchyard service with the user context and determine which path to take
 
+![Feature Flags Dashboard Page](./images/feature-flags-dashboard.png "Feature Flags Dashboard Page")
 ![Feature Flags](./images/feature-flags.png "Feature Flags")
 
 ### Platform Observability
@@ -85,5 +88,3 @@ Then:
     -   Autoscaling is a no-op action in local development.
 -   Configure feature flags
 -   Identify failure points
-
-## example-worker
