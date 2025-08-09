@@ -12,40 +12,6 @@ import (
 	"github.com/lib/pq"
 )
 
-const associateFeatureFlagWithRule = `-- name: AssociateFeatureFlagWithRule :exec
-
-INSERT INTO feature_flags_rules (feature_flag_id, rule_id)
-VALUES ($1, $2)
-ON CONFLICT DO NOTHING
-`
-
-type AssociateFeatureFlagWithRuleParams struct {
-	FeatureFlagID int32 `json:"feature_flag_id"`
-	RuleID        int32 `json:"rule_id"`
-}
-
-// Feature Flag Rules Junction Table Operations
-func (q *Queries) AssociateFeatureFlagWithRule(ctx context.Context, arg AssociateFeatureFlagWithRuleParams) error {
-	_, err := q.db.ExecContext(ctx, associateFeatureFlagWithRule, arg.FeatureFlagID, arg.RuleID)
-	return err
-}
-
-const associationExists = `-- name: AssociationExists :one
-SELECT EXISTS(SELECT 1 FROM feature_flags_rules WHERE feature_flag_id = $1 AND rule_id = $2)
-`
-
-type AssociationExistsParams struct {
-	FeatureFlagID int32 `json:"feature_flag_id"`
-	RuleID        int32 `json:"rule_id"`
-}
-
-func (q *Queries) AssociationExists(ctx context.Context, arg AssociationExistsParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, associationExists, arg.FeatureFlagID, arg.RuleID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
 const bulkAssociateFeatureFlagWithRules = `-- name: BulkAssociateFeatureFlagWithRules :exec
 INSERT INTO feature_flags_rules (feature_flag_id, rule_id)
 SELECT $1, unnest($2::int[])
@@ -115,107 +81,6 @@ func (q *Queries) BulkCreateRulesForFeatureFlag(ctx context.Context, arg BulkCre
 	return items, nil
 }
 
-const bulkDeleteFeatureFlags = `-- name: BulkDeleteFeatureFlags :exec
-DELETE FROM feature_flags
-WHERE id = ANY($1::int[])
-`
-
-func (q *Queries) BulkDeleteFeatureFlags(ctx context.Context, dollar_1 []int32) error {
-	_, err := q.db.ExecContext(ctx, bulkDeleteFeatureFlags, pq.Array(dollar_1))
-	return err
-}
-
-const bulkDeleteRules = `-- name: BulkDeleteRules :exec
-DELETE FROM rules
-WHERE id = ANY($1::int[])
-`
-
-func (q *Queries) BulkDeleteRules(ctx context.Context, dollar_1 []int32) error {
-	_, err := q.db.ExecContext(ctx, bulkDeleteRules, pq.Array(dollar_1))
-	return err
-}
-
-const bulkDisableFeatureFlags = `-- name: BulkDisableFeatureFlags :exec
-UPDATE feature_flags
-SET enabled = false, updated_at = CURRENT_TIMESTAMP
-WHERE id = ANY($1::int[])
-`
-
-func (q *Queries) BulkDisableFeatureFlags(ctx context.Context, dollar_1 []int32) error {
-	_, err := q.db.ExecContext(ctx, bulkDisableFeatureFlags, pq.Array(dollar_1))
-	return err
-}
-
-const bulkEnableFeatureFlags = `-- name: BulkEnableFeatureFlags :exec
-
-UPDATE feature_flags
-SET enabled = true, updated_at = CURRENT_TIMESTAMP
-WHERE id = ANY($1::int[])
-`
-
-// Bulk Operations
-func (q *Queries) BulkEnableFeatureFlags(ctx context.Context, dollar_1 []int32) error {
-	_, err := q.db.ExecContext(ctx, bulkEnableFeatureFlags, pq.Array(dollar_1))
-	return err
-}
-
-const countEnabledFeatureFlags = `-- name: CountEnabledFeatureFlags :one
-SELECT COUNT(*) FROM feature_flags WHERE enabled = true
-`
-
-func (q *Queries) CountEnabledFeatureFlags(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countEnabledFeatureFlags)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countFeatureFlags = `-- name: CountFeatureFlags :one
-
-SELECT COUNT(*) FROM feature_flags
-`
-
-// Utility Queries
-func (q *Queries) CountFeatureFlags(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countFeatureFlags)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countFeatureFlagsForRule = `-- name: CountFeatureFlagsForRule :one
-SELECT COUNT(*) FROM feature_flags_rules WHERE rule_id = $1
-`
-
-func (q *Queries) CountFeatureFlagsForRule(ctx context.Context, ruleID int32) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countFeatureFlagsForRule, ruleID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countRules = `-- name: CountRules :one
-SELECT COUNT(*) FROM rules
-`
-
-func (q *Queries) CountRules(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countRules)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countRulesForFeatureFlag = `-- name: CountRulesForFeatureFlag :one
-SELECT COUNT(*) FROM feature_flags_rules WHERE feature_flag_id = $1
-`
-
-func (q *Queries) CountRulesForFeatureFlag(ctx context.Context, featureFlagID int32) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countRulesForFeatureFlag, featureFlagID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createFeatureFlag = `-- name: CreateFeatureFlag :one
 INSERT INTO feature_flags (name, enabled)
 VALUES ($1, $2)
@@ -241,9 +106,14 @@ func (q *Queries) CreateFeatureFlag(ctx context.Context, arg CreateFeatureFlagPa
 }
 
 const createRule = `-- name: CreateRule :one
-
-INSERT INTO rules (feature_flag_id, field, operator, value)
-VALUES ($1, $2, $3, $4)
+INSERT INTO rules (
+    feature_flag_id,
+    field,
+    operator,
+    value
+) VALUES (
+    $1, $2, $3, $4
+)
 RETURNING id, feature_flag_id, field, operator, value, created_at, updated_at
 `
 
@@ -254,7 +124,6 @@ type CreateRuleParams struct {
 	Value         string        `json:"value"`
 }
 
-// Rules Operations
 func (q *Queries) CreateRule(ctx context.Context, arg CreateRuleParams) (Rule, error) {
 	row := q.db.QueryRowContext(ctx, createRule,
 		arg.FeatureFlagID,
@@ -285,99 +154,14 @@ func (q *Queries) DeleteFeatureFlag(ctx context.Context, id int32) error {
 	return err
 }
 
-const deleteRule = `-- name: DeleteRule :exec
-DELETE FROM rules
-WHERE id = $1
-`
-
-func (q *Queries) DeleteRule(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteRule, id)
-	return err
-}
-
 const deleteRulesByFeatureFlag = `-- name: DeleteRulesByFeatureFlag :exec
 DELETE FROM rules
-WHERE feature_flag_id = $1::int4
-`
-
-func (q *Queries) DeleteRulesByFeatureFlag(ctx context.Context, dollar_1 int32) error {
-	_, err := q.db.ExecContext(ctx, deleteRulesByFeatureFlag, dollar_1)
-	return err
-}
-
-const disassociateAllRulesFromFeatureFlag = `-- name: DisassociateAllRulesFromFeatureFlag :exec
-DELETE FROM feature_flags_rules
 WHERE feature_flag_id = $1
 `
 
-func (q *Queries) DisassociateAllRulesFromFeatureFlag(ctx context.Context, featureFlagID int32) error {
-	_, err := q.db.ExecContext(ctx, disassociateAllRulesFromFeatureFlag, featureFlagID)
+func (q *Queries) DeleteRulesByFeatureFlag(ctx context.Context, featureFlagID sql.NullInt32) error {
+	_, err := q.db.ExecContext(ctx, deleteRulesByFeatureFlag, featureFlagID)
 	return err
-}
-
-const disassociateFeatureFlagFromRule = `-- name: DisassociateFeatureFlagFromRule :exec
-DELETE FROM feature_flags_rules
-WHERE feature_flag_id = $1 AND rule_id = $2
-`
-
-type DisassociateFeatureFlagFromRuleParams struct {
-	FeatureFlagID int32 `json:"feature_flag_id"`
-	RuleID        int32 `json:"rule_id"`
-}
-
-func (q *Queries) DisassociateFeatureFlagFromRule(ctx context.Context, arg DisassociateFeatureFlagFromRuleParams) error {
-	_, err := q.db.ExecContext(ctx, disassociateFeatureFlagFromRule, arg.FeatureFlagID, arg.RuleID)
-	return err
-}
-
-const disassociateRuleFromAllFeatureFlags = `-- name: DisassociateRuleFromAllFeatureFlags :exec
-DELETE FROM feature_flags_rules
-WHERE rule_id = $1
-`
-
-func (q *Queries) DisassociateRuleFromAllFeatureFlags(ctx context.Context, ruleID int32) error {
-	_, err := q.db.ExecContext(ctx, disassociateRuleFromAllFeatureFlags, ruleID)
-	return err
-}
-
-const featureFlagExists = `-- name: FeatureFlagExists :one
-SELECT EXISTS(SELECT 1 FROM feature_flags WHERE id = $1)
-`
-
-func (q *Queries) FeatureFlagExists(ctx context.Context, id int32) (bool, error) {
-	row := q.db.QueryRowContext(ctx, featureFlagExists, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const featureFlagExistsByName = `-- name: FeatureFlagExistsByName :one
-SELECT EXISTS(SELECT 1 FROM feature_flags WHERE name = $1)
-`
-
-func (q *Queries) FeatureFlagExistsByName(ctx context.Context, name string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, featureFlagExistsByName, name)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const getFeatureFlag = `-- name: GetFeatureFlag :one
-SELECT id, name, enabled, created_at, updated_at FROM feature_flags
-WHERE id = $1
-`
-
-func (q *Queries) GetFeatureFlag(ctx context.Context, id int32) (FeatureFlag, error) {
-	row := q.db.QueryRowContext(ctx, getFeatureFlag, id)
-	var i FeatureFlag
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Enabled,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const getFeatureFlagByName = `-- name: GetFeatureFlagByName :one
@@ -468,43 +252,27 @@ func (q *Queries) GetFeatureFlagByNameWithRules(ctx context.Context, name string
 }
 
 const getFeatureFlagWithRules = `-- name: GetFeatureFlagWithRules :many
-
-SELECT 
-    ff.id as feature_flag_id,
-    ff.name as feature_flag_name,
-    ff.enabled as feature_flag_enabled,
-    ff.created_at as feature_flag_created_at,
-    ff.updated_at as feature_flag_updated_at,
-    r.id as rule_id,
-    r.field as rule_field,
-    r.operator as rule_operator,
-    r.value as rule_value,
-    r.created_at as rule_created_at,
-    r.updated_at as rule_updated_at
-FROM feature_flags ff
-LEFT JOIN feature_flags_rules ffr ON ff.id = ffr.feature_flag_id
-LEFT JOIN rules r ON ffr.rule_id = r.id
-WHERE ff.id = $1
+SELECT
+    r.id        AS rule_id,
+    r.field     AS rule_field,
+    r.operator  AS rule_operator,
+    r.value     AS rule_value
+FROM rules AS r
+JOIN feature_flags_rules AS ffr
+    ON ffr.rule_id = r.id
+WHERE ffr.feature_flag_id = $1
 ORDER BY r.id
 `
 
 type GetFeatureFlagWithRulesRow struct {
-	FeatureFlagID        int32          `json:"feature_flag_id"`
-	FeatureFlagName      string         `json:"feature_flag_name"`
-	FeatureFlagEnabled   bool           `json:"feature_flag_enabled"`
-	FeatureFlagCreatedAt sql.NullTime   `json:"feature_flag_created_at"`
-	FeatureFlagUpdatedAt sql.NullTime   `json:"feature_flag_updated_at"`
-	RuleID               sql.NullInt32  `json:"rule_id"`
-	RuleField            sql.NullString `json:"rule_field"`
-	RuleOperator         sql.NullString `json:"rule_operator"`
-	RuleValue            sql.NullString `json:"rule_value"`
-	RuleCreatedAt        sql.NullTime   `json:"rule_created_at"`
-	RuleUpdatedAt        sql.NullTime   `json:"rule_updated_at"`
+	RuleID       int32  `json:"rule_id"`
+	RuleField    string `json:"rule_field"`
+	RuleOperator string `json:"rule_operator"`
+	RuleValue    string `json:"rule_value"`
 }
 
-// Complex Queries with Joins
-func (q *Queries) GetFeatureFlagWithRules(ctx context.Context, id int32) ([]GetFeatureFlagWithRulesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getFeatureFlagWithRules, id)
+func (q *Queries) GetFeatureFlagWithRules(ctx context.Context, featureFlagID int32) ([]GetFeatureFlagWithRulesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFeatureFlagWithRules, featureFlagID)
 	if err != nil {
 		return nil, err
 	}
@@ -513,278 +281,10 @@ func (q *Queries) GetFeatureFlagWithRules(ctx context.Context, id int32) ([]GetF
 	for rows.Next() {
 		var i GetFeatureFlagWithRulesRow
 		if err := rows.Scan(
-			&i.FeatureFlagID,
-			&i.FeatureFlagName,
-			&i.FeatureFlagEnabled,
-			&i.FeatureFlagCreatedAt,
-			&i.FeatureFlagUpdatedAt,
 			&i.RuleID,
 			&i.RuleField,
 			&i.RuleOperator,
 			&i.RuleValue,
-			&i.RuleCreatedAt,
-			&i.RuleUpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getRule = `-- name: GetRule :one
-SELECT id, feature_flag_id, field, operator, value, created_at, updated_at FROM rules
-WHERE id = $1
-`
-
-func (q *Queries) GetRule(ctx context.Context, id int32) (Rule, error) {
-	row := q.db.QueryRowContext(ctx, getRule, id)
-	var i Rule
-	err := row.Scan(
-		&i.ID,
-		&i.FeatureFlagID,
-		&i.Field,
-		&i.Operator,
-		&i.Value,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getRuleWithFeatureFlags = `-- name: GetRuleWithFeatureFlags :many
-SELECT 
-    r.id as rule_id,
-    r.field as rule_field,
-    r.operator as rule_operator,
-    r.value as rule_value,
-    r.created_at as rule_created_at,
-    r.updated_at as rule_updated_at,
-    ff.id as feature_flag_id,
-    ff.name as feature_flag_name,
-    ff.enabled as feature_flag_enabled,
-    ff.created_at as feature_flag_created_at,
-    ff.updated_at as feature_flag_updated_at
-FROM rules r
-LEFT JOIN feature_flags_rules ffr ON r.id = ffr.rule_id
-LEFT JOIN feature_flags ff ON ffr.feature_flag_id = ff.id
-WHERE r.id = $1
-ORDER BY ff.name
-`
-
-type GetRuleWithFeatureFlagsRow struct {
-	RuleID               int32          `json:"rule_id"`
-	RuleField            string         `json:"rule_field"`
-	RuleOperator         string         `json:"rule_operator"`
-	RuleValue            string         `json:"rule_value"`
-	RuleCreatedAt        sql.NullTime   `json:"rule_created_at"`
-	RuleUpdatedAt        sql.NullTime   `json:"rule_updated_at"`
-	FeatureFlagID        sql.NullInt32  `json:"feature_flag_id"`
-	FeatureFlagName      sql.NullString `json:"feature_flag_name"`
-	FeatureFlagEnabled   sql.NullBool   `json:"feature_flag_enabled"`
-	FeatureFlagCreatedAt sql.NullTime   `json:"feature_flag_created_at"`
-	FeatureFlagUpdatedAt sql.NullTime   `json:"feature_flag_updated_at"`
-}
-
-func (q *Queries) GetRuleWithFeatureFlags(ctx context.Context, id int32) ([]GetRuleWithFeatureFlagsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getRuleWithFeatureFlags, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetRuleWithFeatureFlagsRow
-	for rows.Next() {
-		var i GetRuleWithFeatureFlagsRow
-		if err := rows.Scan(
-			&i.RuleID,
-			&i.RuleField,
-			&i.RuleOperator,
-			&i.RuleValue,
-			&i.RuleCreatedAt,
-			&i.RuleUpdatedAt,
-			&i.FeatureFlagID,
-			&i.FeatureFlagName,
-			&i.FeatureFlagEnabled,
-			&i.FeatureFlagCreatedAt,
-			&i.FeatureFlagUpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listAllFeatureFlagsWithRules = `-- name: ListAllFeatureFlagsWithRules :many
-SELECT 
-    ff.id as feature_flag_id,
-    ff.name as feature_flag_name,
-    ff.enabled as feature_flag_enabled,
-    ff.created_at as feature_flag_created_at,
-    ff.updated_at as feature_flag_updated_at,
-    r.id as rule_id,
-    r.field as rule_field,
-    r.operator as rule_operator,
-    r.value as rule_value,
-    r.created_at as rule_created_at,
-    r.updated_at as rule_updated_at
-FROM feature_flags ff
-LEFT JOIN feature_flags_rules ffr ON ff.id = ffr.feature_flag_id
-LEFT JOIN rules r ON ffr.rule_id = r.id
-ORDER BY ff.name, r.id
-`
-
-type ListAllFeatureFlagsWithRulesRow struct {
-	FeatureFlagID        int32          `json:"feature_flag_id"`
-	FeatureFlagName      string         `json:"feature_flag_name"`
-	FeatureFlagEnabled   bool           `json:"feature_flag_enabled"`
-	FeatureFlagCreatedAt sql.NullTime   `json:"feature_flag_created_at"`
-	FeatureFlagUpdatedAt sql.NullTime   `json:"feature_flag_updated_at"`
-	RuleID               sql.NullInt32  `json:"rule_id"`
-	RuleField            sql.NullString `json:"rule_field"`
-	RuleOperator         sql.NullString `json:"rule_operator"`
-	RuleValue            sql.NullString `json:"rule_value"`
-	RuleCreatedAt        sql.NullTime   `json:"rule_created_at"`
-	RuleUpdatedAt        sql.NullTime   `json:"rule_updated_at"`
-}
-
-func (q *Queries) ListAllFeatureFlagsWithRules(ctx context.Context) ([]ListAllFeatureFlagsWithRulesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listAllFeatureFlagsWithRules)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListAllFeatureFlagsWithRulesRow
-	for rows.Next() {
-		var i ListAllFeatureFlagsWithRulesRow
-		if err := rows.Scan(
-			&i.FeatureFlagID,
-			&i.FeatureFlagName,
-			&i.FeatureFlagEnabled,
-			&i.FeatureFlagCreatedAt,
-			&i.FeatureFlagUpdatedAt,
-			&i.RuleID,
-			&i.RuleField,
-			&i.RuleOperator,
-			&i.RuleValue,
-			&i.RuleCreatedAt,
-			&i.RuleUpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listEnabledFeatureFlags = `-- name: ListEnabledFeatureFlags :many
-SELECT id, name, enabled, created_at, updated_at FROM feature_flags
-WHERE enabled = true
-ORDER BY name
-`
-
-func (q *Queries) ListEnabledFeatureFlags(ctx context.Context) ([]FeatureFlag, error) {
-	rows, err := q.db.QueryContext(ctx, listEnabledFeatureFlags)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []FeatureFlag
-	for rows.Next() {
-		var i FeatureFlag
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Enabled,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listEnabledFeatureFlagsWithRules = `-- name: ListEnabledFeatureFlagsWithRules :many
-SELECT 
-    ff.id as feature_flag_id,
-    ff.name as feature_flag_name,
-    ff.enabled as feature_flag_enabled,
-    ff.created_at as feature_flag_created_at,
-    ff.updated_at as feature_flag_updated_at,
-    r.id as rule_id,
-    r.field as rule_field,
-    r.operator as rule_operator,
-    r.value as rule_value,
-    r.created_at as rule_created_at,
-    r.updated_at as rule_updated_at
-FROM feature_flags ff
-LEFT JOIN feature_flags_rules ffr ON ff.id = ffr.feature_flag_id
-LEFT JOIN rules r ON ffr.rule_id = r.id
-WHERE ff.enabled = true
-ORDER BY ff.name, r.id
-`
-
-type ListEnabledFeatureFlagsWithRulesRow struct {
-	FeatureFlagID        int32          `json:"feature_flag_id"`
-	FeatureFlagName      string         `json:"feature_flag_name"`
-	FeatureFlagEnabled   bool           `json:"feature_flag_enabled"`
-	FeatureFlagCreatedAt sql.NullTime   `json:"feature_flag_created_at"`
-	FeatureFlagUpdatedAt sql.NullTime   `json:"feature_flag_updated_at"`
-	RuleID               sql.NullInt32  `json:"rule_id"`
-	RuleField            sql.NullString `json:"rule_field"`
-	RuleOperator         sql.NullString `json:"rule_operator"`
-	RuleValue            sql.NullString `json:"rule_value"`
-	RuleCreatedAt        sql.NullTime   `json:"rule_created_at"`
-	RuleUpdatedAt        sql.NullTime   `json:"rule_updated_at"`
-}
-
-func (q *Queries) ListEnabledFeatureFlagsWithRules(ctx context.Context) ([]ListEnabledFeatureFlagsWithRulesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listEnabledFeatureFlagsWithRules)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListEnabledFeatureFlagsWithRulesRow
-	for rows.Next() {
-		var i ListEnabledFeatureFlagsWithRulesRow
-		if err := rows.Scan(
-			&i.FeatureFlagID,
-			&i.FeatureFlagName,
-			&i.FeatureFlagEnabled,
-			&i.FeatureFlagCreatedAt,
-			&i.FeatureFlagUpdatedAt,
-			&i.RuleID,
-			&i.RuleField,
-			&i.RuleOperator,
-			&i.RuleValue,
-			&i.RuleCreatedAt,
-			&i.RuleUpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -800,24 +300,31 @@ func (q *Queries) ListEnabledFeatureFlagsWithRules(ctx context.Context) ([]ListE
 }
 
 const listFeatureFlags = `-- name: ListFeatureFlags :many
-SELECT id, name, enabled, created_at, updated_at FROM feature_flags
-ORDER BY name
+SELECT id, name, enabled, updated_at
+FROM feature_flags
+ORDER BY feature_flags.id
 `
 
-func (q *Queries) ListFeatureFlags(ctx context.Context) ([]FeatureFlag, error) {
+type ListFeatureFlagsRow struct {
+	ID        int32        `json:"id"`
+	Name      string       `json:"name"`
+	Enabled   bool         `json:"enabled"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
+func (q *Queries) ListFeatureFlags(ctx context.Context) ([]ListFeatureFlagsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listFeatureFlags)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FeatureFlag
+	var items []ListFeatureFlagsRow
 	for rows.Next() {
-		var i FeatureFlag
+		var i ListFeatureFlagsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.Enabled,
-			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -833,269 +340,10 @@ func (q *Queries) ListFeatureFlags(ctx context.Context) ([]FeatureFlag, error) {
 	return items, nil
 }
 
-const listRules = `-- name: ListRules :many
-SELECT id, feature_flag_id, field, operator, value, created_at, updated_at FROM rules
-ORDER BY id
-`
-
-func (q *Queries) ListRules(ctx context.Context) ([]Rule, error) {
-	rows, err := q.db.QueryContext(ctx, listRules)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Rule
-	for rows.Next() {
-		var i Rule
-		if err := rows.Scan(
-			&i.ID,
-			&i.FeatureFlagID,
-			&i.Field,
-			&i.Operator,
-			&i.Value,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listRulesByFeatureFlag = `-- name: ListRulesByFeatureFlag :many
-SELECT id, feature_flag_id, field, operator, value, created_at, updated_at FROM rules
-WHERE feature_flag_id = $1
-ORDER BY id
-`
-
-func (q *Queries) ListRulesByFeatureFlag(ctx context.Context, featureFlagID sql.NullInt32) ([]Rule, error) {
-	rows, err := q.db.QueryContext(ctx, listRulesByFeatureFlag, featureFlagID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Rule
-	for rows.Next() {
-		var i Rule
-		if err := rows.Scan(
-			&i.ID,
-			&i.FeatureFlagID,
-			&i.Field,
-			&i.Operator,
-			&i.Value,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const ruleExists = `-- name: RuleExists :one
-SELECT EXISTS(SELECT 1 FROM rules WHERE id = $1)
-`
-
-func (q *Queries) RuleExists(ctx context.Context, id int32) (bool, error) {
-	row := q.db.QueryRowContext(ctx, ruleExists, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const searchFeatureFlagsByName = `-- name: SearchFeatureFlagsByName :many
-
-SELECT id, name, enabled, created_at, updated_at FROM feature_flags
-WHERE name ILIKE '%' || $1 || '%'
-ORDER BY name
-`
-
-// Search Queries
-func (q *Queries) SearchFeatureFlagsByName(ctx context.Context, dollar_1 sql.NullString) ([]FeatureFlag, error) {
-	rows, err := q.db.QueryContext(ctx, searchFeatureFlagsByName, dollar_1)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []FeatureFlag
-	for rows.Next() {
-		var i FeatureFlag
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Enabled,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const searchRulesByField = `-- name: SearchRulesByField :many
-SELECT id, feature_flag_id, field, operator, value, created_at, updated_at FROM rules
-WHERE field ILIKE '%' || $1 || '%'
-ORDER BY field, id
-`
-
-func (q *Queries) SearchRulesByField(ctx context.Context, dollar_1 sql.NullString) ([]Rule, error) {
-	rows, err := q.db.QueryContext(ctx, searchRulesByField, dollar_1)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Rule
-	for rows.Next() {
-		var i Rule
-		if err := rows.Scan(
-			&i.ID,
-			&i.FeatureFlagID,
-			&i.Field,
-			&i.Operator,
-			&i.Value,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const searchRulesByOperator = `-- name: SearchRulesByOperator :many
-SELECT id, feature_flag_id, field, operator, value, created_at, updated_at FROM rules
-WHERE operator = $1
-ORDER BY field, id
-`
-
-func (q *Queries) SearchRulesByOperator(ctx context.Context, operator string) ([]Rule, error) {
-	rows, err := q.db.QueryContext(ctx, searchRulesByOperator, operator)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Rule
-	for rows.Next() {
-		var i Rule
-		if err := rows.Scan(
-			&i.ID,
-			&i.FeatureFlagID,
-			&i.Field,
-			&i.Operator,
-			&i.Value,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const searchRulesByValue = `-- name: SearchRulesByValue :many
-SELECT id, feature_flag_id, field, operator, value, created_at, updated_at FROM rules
-WHERE value ILIKE '%' || $1 || '%'
-ORDER BY field, id
-`
-
-func (q *Queries) SearchRulesByValue(ctx context.Context, dollar_1 sql.NullString) ([]Rule, error) {
-	rows, err := q.db.QueryContext(ctx, searchRulesByValue, dollar_1)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Rule
-	for rows.Next() {
-		var i Rule
-		if err := rows.Scan(
-			&i.ID,
-			&i.FeatureFlagID,
-			&i.Field,
-			&i.Operator,
-			&i.Value,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const updateFeatureFlag = `-- name: UpdateFeatureFlag :one
+const updateFeatureFlagEnabled = `-- name: UpdateFeatureFlagEnabled :exec
 UPDATE feature_flags
-SET name = $2, enabled = $3, updated_at = CURRENT_TIMESTAMP
+SET enabled = $2
 WHERE id = $1
-RETURNING id, name, enabled, created_at, updated_at
-`
-
-type UpdateFeatureFlagParams struct {
-	ID      int32  `json:"id"`
-	Name    string `json:"name"`
-	Enabled bool   `json:"enabled"`
-}
-
-func (q *Queries) UpdateFeatureFlag(ctx context.Context, arg UpdateFeatureFlagParams) (FeatureFlag, error) {
-	row := q.db.QueryRowContext(ctx, updateFeatureFlag, arg.ID, arg.Name, arg.Enabled)
-	var i FeatureFlag
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Enabled,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const updateFeatureFlagEnabled = `-- name: UpdateFeatureFlagEnabled :one
-UPDATE feature_flags
-SET enabled = $2, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING id, name, enabled, created_at, updated_at
 `
 
 type UpdateFeatureFlagEnabledParams struct {
@@ -1103,53 +351,34 @@ type UpdateFeatureFlagEnabledParams struct {
 	Enabled bool  `json:"enabled"`
 }
 
-func (q *Queries) UpdateFeatureFlagEnabled(ctx context.Context, arg UpdateFeatureFlagEnabledParams) (FeatureFlag, error) {
-	row := q.db.QueryRowContext(ctx, updateFeatureFlagEnabled, arg.ID, arg.Enabled)
-	var i FeatureFlag
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Enabled,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) UpdateFeatureFlagEnabled(ctx context.Context, arg UpdateFeatureFlagEnabledParams) error {
+	_, err := q.db.ExecContext(ctx, updateFeatureFlagEnabled, arg.ID, arg.Enabled)
+	return err
 }
 
-const updateRule = `-- name: UpdateRule :one
+const updateRule = `-- name: UpdateRule :exec
 UPDATE rules
-SET feature_flag_id = $2, field = $3, operator = $4, value = $5, updated_at = CURRENT_TIMESTAMP
+SET field = $2,
+    operator = $3,
+    value = $4
 WHERE id = $1
-RETURNING id, feature_flag_id, field, operator, value, created_at, updated_at
 `
 
 type UpdateRuleParams struct {
-	ID            int32         `json:"id"`
-	FeatureFlagID sql.NullInt32 `json:"feature_flag_id"`
-	Field         string        `json:"field"`
-	Operator      string        `json:"operator"`
-	Value         string        `json:"value"`
+	ID       int32  `json:"id"`
+	Field    string `json:"field"`
+	Operator string `json:"operator"`
+	Value    string `json:"value"`
 }
 
-func (q *Queries) UpdateRule(ctx context.Context, arg UpdateRuleParams) (Rule, error) {
-	row := q.db.QueryRowContext(ctx, updateRule,
+func (q *Queries) UpdateRule(ctx context.Context, arg UpdateRuleParams) error {
+	_, err := q.db.ExecContext(ctx, updateRule,
 		arg.ID,
-		arg.FeatureFlagID,
 		arg.Field,
 		arg.Operator,
 		arg.Value,
 	)
-	var i Rule
-	err := row.Scan(
-		&i.ID,
-		&i.FeatureFlagID,
-		&i.Field,
-		&i.Operator,
-		&i.Value,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+	return err
 }
 
 const upsertFeatureFlagByNameWithRules = `-- name: UpsertFeatureFlagByNameWithRules :one

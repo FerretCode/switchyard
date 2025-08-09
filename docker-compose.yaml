@@ -1,150 +1,151 @@
 services:
-  configurator:
-    build:
-      context: ./configurator
-      dockerfile: ./Dockerfile.dev
-    hostname: configurator.switchyard
-    ports:
-      - 3005:3000
-    volumes:
-      - ./configurator/:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    configurator:
+        build:
+            context: ./configurator
+            dockerfile: ./Dockerfile.dev
+        hostname: configurator.switchyard
+        ports:
+            - 3005:3000
+        volumes:
+            - ./configurator/:/app
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
 
-  autoscale:
-    build:
-      context: ./autoscale
-      dockerfile: Dockerfile.dev
-    hostname: autoscale.switchyard
-    ports:
-      - 3004:3000
-    volumes:
-      - ./autoscale/:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    autoscale:
+        build:
+            context: ./autoscale
+            dockerfile: Dockerfile.dev
+        hostname: autoscale.switchyard
+        ports:
+            - 3004:3000
+        volumes:
+            - ./autoscale/:/app
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
 
-  dashboard:
-    build: 
-      context: ./dashboard
-      dockerfile: Dockerfile.dev
-    ports:
-      - 3003:3000
-    volumes:
-      - ./dashboard/:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    dashboard:
+        build:
+            context: ./dashboard
+            dockerfile: Dockerfile.dev
+        ports:
+            - 3003:3000
+        volumes:
+            - ./dashboard/:/app
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
 
-  incident:
-    build: 
-      context: ./incident
-      dockerfile: Dockerfile.dev
-    ports:
-      - 3002:3000
-    volumes:
-      - ./incident/:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    incident:
+        build:
+            context: ./incident
+            dockerfile: Dockerfile.dev
+        ports:
+            - 3002:3000
+        volumes:
+            - ./incident/:/app
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
 
-  feature-flags:
-    build: 
-      context: ./feature-flags
-      dockerfile: Dockerfile.dev
-    ports:
-      - 3001:3000
-    volumes:
-      - ./feature-flags:/app
-    depends_on:
-      - postgres
-      - redis
+    feature-flags:
+        build:
+            context: ./feature-flags
+            dockerfile: Dockerfile.dev
+        hostname: feature-flags.switchyard
+        ports:
+            - 3001:3000
+        volumes:
+            - ./feature-flags:/app
+        depends_on:
+            - postgres
+            - redis
 
-  scheduler:
-    build: 
-      context: ./scheduler
-      dockerfile: Dockerfile.dev
-    ports:
-      - 3000:3000
-    volumes:
-      - ./scheduler/:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+    scheduler:
+        build:
+            context: ./scheduler
+            dockerfile: Dockerfile.dev
+        ports:
+            - 3000:3000
+        volumes:
+            - ./scheduler/:/app
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            rabbitmq:
+                condition: service_healthy
 
-  rabbitmq:
-    image: rabbitmq:latest
-    container_name: rabbitmq
-    hostname: rabbitmq.switchyard
-    restart: always
-    ports:
-      - 5672:5672
-      - 15672:15672
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
-    configs:
-      - source: rabbitmq-plugins
-        target: /etc/rabbitmq/enabled_plugins
-    volumes:
-      - rabbitmq-lib:/var/lib/rabbitmq/
-      - rabbitmq-log:/var/log/rabbitmq
+    rabbitmq:
+        image: rabbitmq:latest
+        container_name: rabbitmq
+        hostname: rabbitmq.switchyard
+        restart: always
+        ports:
+            - 5672:5672
+            - 15672:15672
+        healthcheck:
+            test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 30s
+        environment:
+            RABBITMQ_DEFAULT_USER: admin
+            RABBITMQ_DEFAULT_PASS: admin
+        configs:
+            - source: rabbitmq-plugins
+              target: /etc/rabbitmq/enabled_plugins
+        volumes:
+            - rabbitmq-lib:/var/lib/rabbitmq/
+            - rabbitmq-log:/var/log/rabbitmq
 
-  redis:
-    image: "redis:alpine"
-    hostname: redis.switchyard
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    redis:
+        image: "redis:alpine"
+        hostname: redis.switchyard
+        ports:
+            - "6379:6379"
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
 
-  postgres:
-    image: postgres:14-alpine
-    hostname: postgres.switchyard
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    volumes:
-      - ./postgres:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_USER=root
-      - POSTGRES_DB=postgres
+    postgres:
+        image: postgres:14-alpine
+        hostname: postgres.switchyard
+        ports:
+            - "5432:5432"
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U root -d postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+        volumes:
+            - ./postgres:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_PASSWORD=secret
+            - POSTGRES_USER=root
+            - POSTGRES_DB=postgres
 
 volumes:
-  postgres-data:
-  rabbitmq-lib:
-    driver: local
-  rabbitmq-log:
-    driver: local
+    postgres-data:
+    rabbitmq-lib:
+        driver: local
+    rabbitmq-log:
+        driver: local
 
 configs:
-  rabbitmq-plugins:
-    content: "[rabbitmq_management]."
+    rabbitmq-plugins:
+        content: "[rabbitmq_management]."

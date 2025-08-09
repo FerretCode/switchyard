@@ -2,11 +2,13 @@ package flags
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/ferretcode/switchyard/feature-flags/internal/repositories"
 	"github.com/ferretcode/switchyard/feature-flags/pkg/types"
@@ -132,6 +134,100 @@ func (f *FlagsService) Get(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (f *FlagsService) ToggleFeatureFlag(w http.ResponseWriter, r *http.Request) error {
+	flagName := chi.URLParam(r, "name")
+	enabled := r.URL.Query().Get("enabled")
+
+	if enabled != "true" && enabled != "false" {
+		http.Error(w, "enabled query parameter must be 'true' or 'false'", http.StatusBadRequest)
+		return nil
+	}
+
+	enabledBool := enabled == "true"
+
+	flag, err := f.Queries.GetFeatureFlagByName(f.Context, flagName)
+	if err != nil {
+		return fmt.Errorf("error fetching feature flag: %w", err)
+	}
+
+	err = f.Queries.UpdateFeatureFlagEnabled(f.Context, repositories.UpdateFeatureFlagEnabledParams{
+		ID:      flag.ID,
+		Enabled: enabledBool,
+	})
+	if err != nil {
+		return fmt.Errorf("error enabling feature flag: %w", err)
+	}
+
+	w.WriteHeader(200)
+	return nil
+}
+
+func (f *FlagsService) UpsertRules(w http.ResponseWriter, r *http.Request) error {
+	flagName := chi.URLParam(r, "name")
+
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return fmt.Errorf("error reading request body: %w", err)
+	}
+
+	upsertRulesRequest := UpsertRulesRequest{}
+	if err := json.Unmarshal(bytes, &upsertRulesRequest); err != nil {
+		return fmt.Errorf("error parsing request body: %w", err)
+	}
+
+	updatedRules := upsertRulesRequest.Rules
+
+	flag, err := f.Queries.GetFeatureFlagByName(f.Context, flagName)
+	if err != nil {
+		http.Error(w, "Feature flag not found", http.StatusNotFound)
+		return nil
+	}
+
+	existingRules, err := f.Queries.GetFeatureFlagWithRules(f.Context, flag.ID)
+	if err != nil {
+		return fmt.Errorf("error fetching existing rules: %w", err)
+	}
+
+	existingRulesMap := make(map[string]repositories.GetFeatureFlagWithRulesRow)
+	for _, row := range existingRules {
+		existingRulesMap[row.RuleField] = row
+	}
+
+	for _, rule := range updatedRules {
+		if _, ok := existingRulesMap[rule.Field]; ok {
+			err := f.Queries.UpdateRule(f.Context, repositories.UpdateRuleParams{
+				ID:       existingRulesMap[rule.Field].RuleID,
+				Field:    rule.Field,
+				Operator: rule.Operator,
+				Value:    rule.Value,
+			})
+			if err != nil {
+				return fmt.Errorf("error updating rule: %w", err)
+			}
+		} else {
+			rule, err := f.Queries.CreateRule(f.Context, repositories.CreateRuleParams{
+				FeatureFlagID: sql.NullInt32{Int32: flag.ID, Valid: true},
+				Field:         rule.Field,
+				Operator:      rule.Operator,
+				Value:         rule.Value,
+			})
+			if err != nil {
+				return fmt.Errorf("error creating rule: %w", err)
+			}
+
+			if err := f.Queries.BulkAssociateFeatureFlagWithRules(f.Context, repositories.BulkAssociateFeatureFlagWithRulesParams{
+				FeatureFlagID: flag.ID,
+				Column2:       []int32{rule.ID},
+			}); err != nil {
+				return fmt.Errorf("error creating feature flag to rules mappings: %w", err)
+			}
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return nil
+}
+
 func (f *FlagsService) Update(w http.ResponseWriter, r *http.Request) error {
 	flagName := chi.URLParam(r, "name")
 
@@ -146,21 +242,61 @@ func (f *FlagsService) Update(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("error parsing updates: %w", err)
 	}
 
-	fields, operators, values := transformRules(updatedFlag.Rules)
-
-	_, err = f.Queries.UpsertFeatureFlagByNameWithRules(f.Context, repositories.UpsertFeatureFlagByNameWithRulesParams{
-		Name:    flagName,
-		Enabled: updatedFlag.Enabled,
-		Column3: fields,
-		Column4: operators,
-		Column5: values,
-	})
+	flag, err := f.Queries.GetFeatureFlagByName(f.Context, flagName)
 	if err != nil {
-		return fmt.Errorf("error updating feature flag: %w", err)
+		http.Error(w, "Feature flag not found", http.StatusNotFound)
+		return nil
 	}
 
-	w.WriteHeader(200)
+	err = f.Queries.DeleteRulesByFeatureFlag(f.Context, sql.NullInt32{Int32: flag.ID, Valid: true})
+	if err != nil {
+		return fmt.Errorf("error deleting existing rules: %w", err)
+	}
 
+	if len(updatedFlag.Rules) > 0 {
+		fields, operators, values := transformRules(updatedFlag.Rules)
+		rules, err := f.Queries.BulkCreateRulesForFeatureFlag(f.Context, repositories.BulkCreateRulesForFeatureFlagParams{
+			Column1: flag.ID,
+			Column2: fields,
+			Column3: operators,
+			Column4: values,
+		})
+		if err != nil {
+			return fmt.Errorf("error creating new rules: %w", err)
+		}
+
+		ruleIds := getRuleIdsFromRules(rules)
+		err = f.Queries.BulkAssociateFeatureFlagWithRules(f.Context, repositories.BulkAssociateFeatureFlagWithRulesParams{
+			FeatureFlagID: flag.ID,
+			Column2:       ruleIds,
+		})
+		if err != nil {
+			return fmt.Errorf("error associating rules with feature flag: %w", err)
+		}
+	}
+
+	err = f.Queries.UpdateFeatureFlagEnabled(f.Context, repositories.UpdateFeatureFlagEnabledParams{
+		ID:      flag.ID,
+		Enabled: updatedFlag.Enabled,
+	})
+	if err != nil {
+		return fmt.Errorf("error updating feature flag enabled status: %w", err)
+	}
+
+	updatedFlagResponse := types.Flag{
+		Id:      int(flag.ID),
+		Name:    flag.Name,
+		Enabled: updatedFlag.Enabled,
+		Rules:   updatedFlag.Rules,
+	}
+
+	responseBytes, err := json.Marshal(updatedFlagResponse)
+	if err != nil {
+		return fmt.Errorf("error marshalling updated feature flag: %w", err)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseBytes)
 	return nil
 }
 
@@ -172,7 +308,7 @@ func (f *FlagsService) Delete(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("error fetching feature flag: %w", err)
 	}
 
-	err = f.Queries.DeleteRulesByFeatureFlag(f.Context, flag.ID)
+	err = f.Queries.DeleteRulesByFeatureFlag(f.Context, sql.NullInt32{Int32: flag.ID, Valid: true})
 	if err != nil {
 		return fmt.Errorf("error deleting feature flag rules: %w", err)
 	}
@@ -246,6 +382,52 @@ func (f *FlagsService) Evaluate(w http.ResponseWriter, r *http.Request) error {
 
 	return nil
 
+}
+
+func (f *FlagsService) List(w http.ResponseWriter, r *http.Request) error {
+	flags, err := f.Queries.ListFeatureFlags(f.Context)
+	if err != nil {
+		return fmt.Errorf("error fetching feature flags: %w", err)
+	}
+
+	responseFlags := make([]types.Flag, len(flags))
+	for i, flag := range flags {
+		rows, err := f.Queries.GetFeatureFlagWithRules(f.Context, flag.ID)
+		if err != nil {
+			return err
+		}
+
+		f.Logger.Info("flag", "name", flag.Name, "rule-count", len(rows))
+
+		var rules []types.Rule
+
+		for _, row := range rows {
+			rule := types.Rule{
+				Field:    row.RuleField,
+				Operator: row.RuleOperator,
+				Value:    row.RuleValue,
+			}
+
+			rules = append(rules, rule)
+		}
+
+		responseFlags[i] = types.Flag{
+			Id:        int(flag.ID),
+			Name:      flag.Name,
+			Enabled:   flag.Enabled,
+			Rules:     rules,
+			UpdatedAt: flag.UpdatedAt.Time.Format(time.RFC3339),
+		}
+	}
+
+	responseBytes, err := json.Marshal(responseFlags)
+	if err != nil {
+		return fmt.Errorf("error marshalling feature flags: %w", err)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseBytes)
+	return nil
 }
 
 func transformRules(rules []types.Rule) ([]string, []string, []string) {

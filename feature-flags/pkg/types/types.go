@@ -6,10 +6,11 @@ type Config struct {
 }
 
 type Flag struct {
-	Id      int    `json:"id"`
-	Name    string `json:"name"`
-	Enabled bool   `json:"enabled"`
-	Rules   []Rule `json:"rules"`
+	Id        int    `json:"id"`
+	Name      string `json:"name"`
+	Enabled   bool   `json:"enabled"`
+	Rules     []Rule `json:"rules"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 type Rule struct {

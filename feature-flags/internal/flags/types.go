@@ -10,6 +10,10 @@ type GetFlagResponse struct {
 	Rules   []types.Rule `json:"rules"`
 }
 
+type UpsertRulesRequest struct {
+	Rules []types.Rule `json:"rules"`
+}
+
 type EvaluateUserContext struct {
 	UserContext map[string]string `json:"user_context"`
 }

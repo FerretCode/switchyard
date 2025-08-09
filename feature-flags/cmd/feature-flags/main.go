@@ -61,8 +61,20 @@ func main() {
 			handleError(flagService.Get(w, r), w, "flags/get")
 		})
 
+		r.Get("/list", func(w http.ResponseWriter, r *http.Request) {
+			handleError(flagService.List(w, r), w, "flags/list")
+		})
+
+		r.Patch("/toggle-feature-flag/{name}", func(w http.ResponseWriter, r *http.Request) {
+			handleError(flagService.ToggleFeatureFlag(w, r), w, "flags/enable-feature-flag")
+		})
+
 		r.Patch("/update/{name}", func(w http.ResponseWriter, r *http.Request) {
 			handleError(flagService.Update(w, r), w, "flags/update")
+		})
+
+		r.Patch("/upsert-rules/{name}", func(w http.ResponseWriter, r *http.Request) {
+			handleError(flagService.UpsertRules(w, r), w, "flags/upsert-rules")
 		})
 
 		r.Delete("/delete/{name}", func(w http.ResponseWriter, r *http.Request) {

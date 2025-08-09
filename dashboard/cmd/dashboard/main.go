@@ -113,6 +113,14 @@ func main() {
 				handleError(featureFlagsService.Update(w, r), w, "feature-flags/update")
 			})
 
+			r.Patch("/upsert-rules/{name}", func(w http.ResponseWriter, r *http.Request) {
+				handleError(featureFlagsService.UpsertRules(w, r), w, "feature-flags/upsert-rules")
+			})
+
+			r.Patch("/toggle-feature-flag/{name}", func(w http.ResponseWriter, r *http.Request) {
+				handleError(featureFlagsService.ToggleFeatureFlag(w, r), w, "feature-flags/enable-feature-flag")
+			})
+
 			r.Delete("/delete/{name}", func(w http.ResponseWriter, r *http.Request) {
 				handleError(featureFlagsService.Delete(w, r), w, "feature-flags/delete")
 			})

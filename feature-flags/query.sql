@@ -11,7 +11,6 @@ WHERE name = $1;
 DELETE FROM feature_flags
 WHERE id = $1;
 
-
 -- name: GetFeatureFlagByNameWithRules :many
 SELECT 
     ff.id as feature_flag_id,
@@ -78,3 +77,47 @@ inserted_associations AS (
     RETURNING feature_flag_id, rule_id
 )
 SELECT * FROM upserted_flag;
+
+-- name: ListFeatureFlags :many
+SELECT id, name, enabled, updated_at
+FROM feature_flags
+ORDER BY feature_flags.id;
+
+-- name: UpdateFeatureFlagEnabled :exec
+UPDATE feature_flags
+SET enabled = $2
+WHERE id = $1;
+
+-- name: GetFeatureFlagWithRules :many
+SELECT
+    r.id        AS rule_id,
+    r.field     AS rule_field,
+    r.operator  AS rule_operator,
+    r.value     AS rule_value
+FROM rules AS r
+JOIN feature_flags_rules AS ffr
+    ON ffr.rule_id = r.id
+WHERE ffr.feature_flag_id = $1
+ORDER BY r.id;
+
+-- name: CreateRule :one
+INSERT INTO rules (
+    feature_flag_id,
+    field,
+    operator,
+    value
+) VALUES (
+    $1, $2, $3, $4
+)
+RETURNING *;
+
+-- name: UpdateRule :exec
+UPDATE rules
+SET field = $2,
+    operator = $3,
+    value = $4
+WHERE id = $1;
+
+-- name: DeleteRulesByFeatureFlag :exec
+DELETE FROM rules
+WHERE feature_flag_id = $1;

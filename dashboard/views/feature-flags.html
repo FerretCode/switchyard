@@ -21,15 +21,17 @@
             const response = await fetch("/api/feature-flags/list");
             if (!response.ok) throw new Error("Failed to fetch feature flags");
             const flags = await response.json();
+            console.log("Fetched feature flags:", flags);
             renderFeatureFlags(flags);
         } catch (error) {
+            console.error("Error fetching feature flags:", error);
             alert(error.message);
         }
     }
 
     function renderFeatureFlags(flags) {
         const container = document.getElementById("flags-container");
-        container.innerHTML = ""; // Clear existing content
+        container.innerHTML = "";
 
         flags.forEach((flag) => {
             const flagCard = document.createElement("div");
@@ -57,10 +59,10 @@
                                 ${flag.description || "No description provided"}
                             </p>
                             <div class="flex items-center gap-4 text-sm text-base-content/60">
-                                <span>Rules: ${flag.rules.length}</span>
-                                <span>Updated: ${new Date(
-                                    flag.updatedAt
-                                ).toLocaleDateString()}</span>
+                                <span>Rules: ${
+                                    flag.rules ? flag.rules.length : 0
+                                }</span>
+                                <span>Updated: ${flag.updated_at}</span>
                                 <div class="flex items-center gap-1 ${
                                     flag.enabled ? "text-success" : "text-error"
                                 }">
@@ -82,9 +84,6 @@
                                 class="dropdown-content menu p-2 shadow bg-base-200 rounded-box w-52"
                             >
                                 <li>
-                                    <a><i class="fas fa-edit mr-2"></i>Edit</a>
-                                </li>
-                                <li>
                                     <a class="text-error" onclick="deleteFeatureFlag('${
                                         flag.name
                                     }')">
@@ -92,6 +91,109 @@
                                     </a>
                                 </li>
                             </ul>
+                        </div>
+                    </div>
+                    <div class="collapse collapse-arrow mt-4">
+                        <input type="checkbox" />
+                        <div
+                            class="collapse-title text-sm font-medium bg-base-300 hover:bg-base-400 rounded-lg p-3 flex justify-between items-center"
+                        >
+                            <span>View Rules Configuration</span>
+                        </div>
+                        <div class="collapse-content mt-3">
+                            <div class="space-y-2">
+                                <button
+                                    class="btn btn-sm btn-primary mb-3"
+                                    onclick="addNewRule(this)"
+                                >
+                                    <i class="fas fa-plus mr-2"></i>Add Rule
+                                </button>
+                                <div
+                                    class="flex justify-between items-center p-3 bg-base-200 rounded-lg new-rule-input"
+                                >
+                                    <div class="flex items-center gap-4">
+                                        <input
+                                            type="text"
+                                            class="input input-sm input-bordered w-32"
+                                            placeholder="Field Name"
+                                        />
+                                        <select
+                                            class="select select-sm select-bordered w-32"
+                                        >
+                                            <option disabled selected>
+                                                Operator
+                                            </option>
+                                            <option>equals</option>
+                                            <option>contains</option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            class="input input-sm input-bordered w-32"
+                                            placeholder="Value"
+                                        />
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button
+                                            class="btn btn-sm btn-success"
+                                            onclick="saveNewRule(this)"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            class="btn btn-sm btn-error"
+                                            onclick="cancelNewRule(this)"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                                ${
+                                    flag.rules
+                                        ? flag.rules.length === 0
+                                            ? `<p class="text-sm text-base-content/60">No rules configured yet.</p>`
+                                            : ""
+                                        : `<p class="text-sm text-base-content/60">No rules configured yet.</p>`
+                                }
+                                ${
+                                    flag.rules
+                                        ? flag.rules
+                                              .map(
+                                                  (rule) => `
+                                    <div
+                                        class="flex justify-between items-center p-2 bg-base-200 rounded-lg"
+                                    >
+                                        <div class="flex items-center gap-4">
+                                            <span class="text-sm font-medium"
+                                                >${rule.field}</span
+                                            >
+                                            <span class="text-sm text-base-content/60"
+                                                >${rule.operator}</span
+                                            >
+                                            <code class="text-sm text-primary"
+                                                >${rule.value}</code
+                                            >
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button
+                                                class="btn btn-sm btn-warning"
+                                                onclick="editRule(this)"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                class="btn btn-sm btn-error"
+                                                onclick="deleteRule(this)"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                `
+                                              )
+                                              .join("")
+                                        : ""
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -117,20 +219,23 @@
             if (!response.ok) throw new Error("Failed to create feature flag");
             fetchFeatureFlags();
         } catch (error) {
+            console.error("Error creating feature flag:", error);
             alert(error.message);
         }
     }
 
     async function toggleFeatureFlag(name, enabled) {
         try {
-            const response = await fetch(`/api/feature-flags/update/${name}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ enabled }),
-            });
+            const response = await fetch(
+                `/api/feature-flags/toggle-feature-flag/${name}?enabled=${enabled}`,
+                {
+                    method: "PATCH",
+                }
+            );
             if (!response.ok) throw new Error("Failed to update feature flag");
             fetchFeatureFlags();
         } catch (error) {
+            console.error("Error toggling feature flag:", error);
             alert(error.message);
         }
     }
@@ -146,10 +251,237 @@
             if (!response.ok) throw new Error("Failed to delete feature flag");
             fetchFeatureFlags();
         } catch (error) {
+            console.error("Error deleting feature flag:", error);
             alert(error.message);
         }
     }
 
-    // Load feature flags on page load
+    async function saveNewRule(button) {
+        const newRuleInput = button.closest(".new-rule-input");
+        const inputs = newRuleInput.querySelectorAll("input, select");
+        const [fieldName, operator, value] = Array.from(inputs).map(
+            (input) => input.value
+        );
+
+        if (!fieldName || !operator || !value) {
+            alert("Please fill out all fields.");
+            return;
+        }
+
+        const flagName = button
+            .closest(".card-body")
+            .querySelector(".card-title").textContent;
+
+        try {
+            const response = await fetch(
+                `/api/feature-flags/upsert-rules/${flagName}`,
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        rules: [
+                            {
+                                field: fieldName,
+                                operator: operator,
+                                value: value,
+                            },
+                        ],
+                    }),
+                }
+            );
+
+            if (!response.ok) throw new Error("Failed to save rule");
+
+            fetchFeatureFlags();
+        } catch (error) {
+            console.error("Error saving new rule:", error);
+            alert(error.message);
+        }
+    }
+
+    function addNewRule(button) {
+        const newRuleInput = button
+            .closest(".collapse-content")
+            .querySelector(".new-rule-input");
+        newRuleInput.classList.remove("hidden");
+    }
+
+    function cancelNewRule(button) {
+        const newRuleInput = button.closest(".new-rule-input");
+        newRuleInput.classList.add("hidden");
+    }
+
+    async function deleteRule(button) {
+        const ruleElement = button.closest(".flex.justify-between");
+        const fieldName = ruleElement.querySelector(
+            ".text-sm.font-medium"
+        ).textContent;
+        const flagName = button
+            .closest(".card-body")
+            .querySelector(".card-title").textContent;
+
+        try {
+            const response = await fetch(`/api/feature-flags/get/${flagName}`);
+            if (!response.ok) throw new Error("Failed to fetch feature flag");
+            const flag = await response.json();
+
+            console.log(flag.rules);
+            console.log(fieldName);
+
+            const updatedRules = flag.rules.filter(
+                (rule) => rule.field !== fieldName
+            );
+
+            const updateResponse = await fetch(
+                `/api/feature-flags/update/${flagName}`,
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        rules: updatedRules,
+                        enabled: flag.enabled,
+                    }),
+                }
+            );
+
+            if (!updateResponse.ok) throw new Error("Failed to delete rule");
+
+            fetchFeatureFlags();
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    function editRule(button) {
+        const ruleElement = button.closest(".flex.justify-between");
+
+        const fieldSpan = ruleElement.querySelector(".text-sm.font-medium");
+        const operatorSpan = ruleElement.querySelector(
+            ".text-sm.text-base-content\\/60"
+        );
+        const valueCode = ruleElement.querySelector("code");
+
+        const originalField = fieldSpan.textContent;
+        const originalOperator = operatorSpan.textContent;
+        const originalValue = valueCode.textContent;
+
+        ruleElement.innerHTML = "";
+
+        const fieldInput = document.createElement("input");
+        fieldInput.type = "text";
+        fieldInput.className = "input input-sm input-bordered w-32";
+        fieldInput.value = originalField;
+
+        const operatorSelect = document.createElement("select");
+        operatorSelect.className = "select select-sm select-bordered w-32";
+        ["equals", "contains"].forEach((op) => {
+            const option = document.createElement("option");
+            option.value = op;
+            option.textContent = op;
+            if (op === originalOperator) option.selected = true;
+            operatorSelect.appendChild(option);
+        });
+
+        const valueInput = document.createElement("input");
+        valueInput.type = "text";
+        valueInput.className = "input input-sm input-bordered w-32";
+        valueInput.value = originalValue;
+
+        const inputsDiv = document.createElement("div");
+        inputsDiv.className = "flex items-center gap-4";
+        inputsDiv.appendChild(fieldInput);
+        inputsDiv.appendChild(operatorSelect);
+        inputsDiv.appendChild(valueInput);
+
+        const buttonsDiv = document.createElement("div");
+        buttonsDiv.className = "flex gap-2";
+
+        const saveBtn = document.createElement("button");
+        saveBtn.className = "btn btn-sm btn-success";
+        saveBtn.textContent = "Save";
+        saveBtn.onclick = () =>
+            saveEditedRule(ruleElement, originalField, {
+                field: fieldInput.value.trim(),
+                operator: operatorSelect.value,
+                value: valueInput.value.trim(),
+            });
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn btn-sm btn-error";
+        cancelBtn.textContent = "Cancel";
+        cancelBtn.onclick = () =>
+            cancelEditRule(ruleElement, {
+                field: originalField,
+                operator: originalOperator,
+                value: originalValue,
+            });
+
+        buttonsDiv.appendChild(saveBtn);
+        buttonsDiv.appendChild(cancelBtn);
+
+        ruleElement.appendChild(inputsDiv);
+        ruleElement.appendChild(buttonsDiv);
+    }
+
+    async function saveEditedRule(ruleElement, originalField, newRule) {
+        if (!newRule.field || !newRule.operator || !newRule.value) {
+            alert("Please fill out all fields.");
+            return;
+        }
+
+        const cardBody = ruleElement.closest(".card-body");
+        const flagName = cardBody.querySelector(".card-title").textContent;
+
+        try {
+            const flagResponse = await fetch(
+                `/api/feature-flags/get/${flagName}`
+            );
+            if (!flagResponse.ok)
+                throw new Error("Failed to fetch feature flag");
+            const flag = await flagResponse.json();
+
+            const updatedRules = flag.rules.map((rule) =>
+                rule.field === originalField ? newRule : rule
+            );
+
+            const updateResponse = await fetch(
+                `/api/feature-flags/update/${flagName}`,
+                {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        rules: updatedRules,
+                        enabled: flag.enabled,
+                    }),
+                }
+            );
+
+            if (!updateResponse.ok) throw new Error("Failed to update rule");
+
+            renderSingleRule(ruleElement, newRule);
+        } catch (error) {
+            console.error("Error updating rule:", error);
+            alert(error.message);
+        }
+    }
+
+    function cancelEditRule(ruleElement, originalRule) {
+        renderSingleRule(ruleElement, originalRule);
+    }
+
+    function renderSingleRule(ruleElement, rule) {
+        ruleElement.innerHTML = `
+        <div class="flex items-center gap-4">
+            <span class="text-sm font-medium">${rule.field}</span>
+            <span class="text-sm text-base-content/60">${rule.operator}</span>
+            <code class="text-sm text-primary">${rule.value}</code>
+        </div>
+        <div class="flex gap-2">
+            <button class="btn btn-sm btn-warning" onclick="editRule(this)">Edit</button>
+            <button class="btn btn-sm btn-error" onclick="deleteRule(this)">Delete</button>
+        </div>
+    `;
+    }
+
     document.addEventListener("DOMContentLoaded", fetchFeatureFlags);
 </script>
