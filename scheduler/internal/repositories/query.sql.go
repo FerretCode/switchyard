@@ -8,7 +8,107 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
+
+const aggregateJobReceiptsByJobID = `-- name: AggregateJobReceiptsByJobID :one
+SELECT
+    job_name,
+    COUNT(*) AS total_receipts,
+    COUNT(*) FILTER (WHERE status = 'ok') AS ok_count,
+    COUNT(*) FILTER (WHERE status = 'error') AS error_count,
+    MIN(retry_count) AS min_retry_count,
+    MAX(retry_count) AS max_retry_count,
+    AVG(retry_count) AS avg_retry_count,
+    MIN(created_at) AS earliest_created_at,
+    MAX(updated_at) AS latest_updated_at
+FROM job_receipts
+WHERE job_name = $1
+GROUP BY job_name
+LIMIT 1
+`
+
+type AggregateJobReceiptsByJobIDRow struct {
+	JobName           string      `json:"job_name"`
+	TotalReceipts     int64       `json:"total_receipts"`
+	OkCount           int64       `json:"ok_count"`
+	ErrorCount        int64       `json:"error_count"`
+	MinRetryCount     interface{} `json:"min_retry_count"`
+	MaxRetryCount     interface{} `json:"max_retry_count"`
+	AvgRetryCount     float64     `json:"avg_retry_count"`
+	EarliestCreatedAt interface{} `json:"earliest_created_at"`
+	LatestUpdatedAt   interface{} `json:"latest_updated_at"`
+}
+
+func (q *Queries) AggregateJobReceiptsByJobID(ctx context.Context, jobName string) (AggregateJobReceiptsByJobIDRow, error) {
+	row := q.db.QueryRowContext(ctx, aggregateJobReceiptsByJobID, jobName)
+	var i AggregateJobReceiptsByJobIDRow
+	err := row.Scan(
+		&i.JobName,
+		&i.TotalReceipts,
+		&i.OkCount,
+		&i.ErrorCount,
+		&i.MinRetryCount,
+		&i.MaxRetryCount,
+		&i.AvgRetryCount,
+		&i.EarliestCreatedAt,
+		&i.LatestUpdatedAt,
+	)
+	return i, err
+}
+
+const createJobReceipt = `-- name: CreateJobReceipt :one
+INSERT INTO job_receipts (
+    job_id,
+    status,
+    retry_count,
+    message,
+    job_name,
+    job_context,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8
+)
+RETURNING id, job_id, status, retry_count, message, job_name, job_context, created_at, updated_at
+`
+
+type CreateJobReceiptParams struct {
+	JobID      string          `json:"job_id"`
+	Status     string          `json:"status"`
+	RetryCount int32           `json:"retry_count"`
+	Message    string          `json:"message"`
+	JobName    string          `json:"job_name"`
+	JobContext json.RawMessage `json:"job_context"`
+	CreatedAt  int64           `json:"created_at"`
+	UpdatedAt  int64           `json:"updated_at"`
+}
+
+func (q *Queries) CreateJobReceipt(ctx context.Context, arg CreateJobReceiptParams) (JobReceipt, error) {
+	row := q.db.QueryRowContext(ctx, createJobReceipt,
+		arg.JobID,
+		arg.Status,
+		arg.RetryCount,
+		arg.Message,
+		arg.JobName,
+		arg.JobContext,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i JobReceipt
+	err := row.Scan(
+		&i.ID,
+		&i.JobID,
+		&i.Status,
+		&i.RetryCount,
+		&i.Message,
+		&i.JobName,
+		&i.JobContext,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
 
 const createService = `-- name: CreateService :one
 INSERT INTO services (
@@ -31,6 +131,26 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 	return i, err
 }
 
+const deleteJobReceiptByID = `-- name: DeleteJobReceiptByID :exec
+DELETE FROM job_receipts
+WHERE id = $1
+`
+
+func (q *Queries) DeleteJobReceiptByID(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteJobReceiptByID, id)
+	return err
+}
+
+const deleteJobReceiptByJobID = `-- name: DeleteJobReceiptByJobID :exec
+DELETE FROM job_receipts
+WHERE job_id = $1
+`
+
+func (q *Queries) DeleteJobReceiptByJobID(ctx context.Context, jobID string) error {
+	_, err := q.db.ExecContext(ctx, deleteJobReceiptByJobID, jobID)
+	return err
+}
+
 const deleteService = `-- name: DeleteService :exec
 DELETE FROM services
 WHERE service_id = $1
@@ -39,6 +159,50 @@ WHERE service_id = $1
 func (q *Queries) DeleteService(ctx context.Context, serviceID string) error {
 	_, err := q.db.ExecContext(ctx, deleteService, serviceID)
 	return err
+}
+
+const getJobReceiptByID = `-- name: GetJobReceiptByID :one
+SELECT id, job_id, status, retry_count, message, job_name, job_context, created_at, updated_at FROM job_receipts
+WHERE id = $1
+`
+
+func (q *Queries) GetJobReceiptByID(ctx context.Context, id int32) (JobReceipt, error) {
+	row := q.db.QueryRowContext(ctx, getJobReceiptByID, id)
+	var i JobReceipt
+	err := row.Scan(
+		&i.ID,
+		&i.JobID,
+		&i.Status,
+		&i.RetryCount,
+		&i.Message,
+		&i.JobName,
+		&i.JobContext,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getJobReceiptByJobID = `-- name: GetJobReceiptByJobID :one
+SELECT id, job_id, status, retry_count, message, job_name, job_context, created_at, updated_at FROM job_receipts
+WHERE job_id = $1
+`
+
+func (q *Queries) GetJobReceiptByJobID(ctx context.Context, jobID string) (JobReceipt, error) {
+	row := q.db.QueryRowContext(ctx, getJobReceiptByJobID, jobID)
+	var i JobReceipt
+	err := row.Scan(
+		&i.ID,
+		&i.JobID,
+		&i.Status,
+		&i.RetryCount,
+		&i.Message,
+		&i.JobName,
+		&i.JobContext,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getService = `-- name: GetService :one
@@ -69,6 +233,50 @@ func (q *Queries) GetServicesByJobName(ctx context.Context, jobName sql.NullStri
 	for rows.Next() {
 		var i Service
 		if err := rows.Scan(&i.ServiceID, &i.JobName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listJobReceipts = `-- name: ListJobReceipts :many
+SELECT id, job_id, status, retry_count, message, job_name, job_context, created_at, updated_at FROM job_receipts
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListJobReceiptsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListJobReceipts(ctx context.Context, arg ListJobReceiptsParams) ([]JobReceipt, error) {
+	rows, err := q.db.QueryContext(ctx, listJobReceipts, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []JobReceipt
+	for rows.Next() {
+		var i JobReceipt
+		if err := rows.Scan(
+			&i.ID,
+			&i.JobID,
+			&i.Status,
+			&i.RetryCount,
+			&i.Message,
+			&i.JobName,
+			&i.JobContext,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -137,6 +345,102 @@ func (q *Queries) ListServicesWithJobs(ctx context.Context) ([]Service, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateJobReceiptByID = `-- name: UpdateJobReceiptByID :one
+UPDATE job_receipts
+SET
+    status = $2,
+    retry_count = $3,
+    message = $4,
+    job_name = $5,
+    job_context = $6,
+    updated_at = $7
+WHERE id = $1
+RETURNING id, job_id, status, retry_count, message, job_name, job_context, created_at, updated_at
+`
+
+type UpdateJobReceiptByIDParams struct {
+	ID         int32           `json:"id"`
+	Status     string          `json:"status"`
+	RetryCount int32           `json:"retry_count"`
+	Message    string          `json:"message"`
+	JobName    string          `json:"job_name"`
+	JobContext json.RawMessage `json:"job_context"`
+	UpdatedAt  int64           `json:"updated_at"`
+}
+
+func (q *Queries) UpdateJobReceiptByID(ctx context.Context, arg UpdateJobReceiptByIDParams) (JobReceipt, error) {
+	row := q.db.QueryRowContext(ctx, updateJobReceiptByID,
+		arg.ID,
+		arg.Status,
+		arg.RetryCount,
+		arg.Message,
+		arg.JobName,
+		arg.JobContext,
+		arg.UpdatedAt,
+	)
+	var i JobReceipt
+	err := row.Scan(
+		&i.ID,
+		&i.JobID,
+		&i.Status,
+		&i.RetryCount,
+		&i.Message,
+		&i.JobName,
+		&i.JobContext,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateJobReceiptByJobID = `-- name: UpdateJobReceiptByJobID :one
+UPDATE job_receipts
+SET
+    status = $2,
+    retry_count = $3,
+    message = $4,
+    job_name = $5,
+    job_context = $6,
+    updated_at = $7
+WHERE job_id = $1
+RETURNING id, job_id, status, retry_count, message, job_name, job_context, created_at, updated_at
+`
+
+type UpdateJobReceiptByJobIDParams struct {
+	JobID      string          `json:"job_id"`
+	Status     string          `json:"status"`
+	RetryCount int32           `json:"retry_count"`
+	Message    string          `json:"message"`
+	JobName    string          `json:"job_name"`
+	JobContext json.RawMessage `json:"job_context"`
+	UpdatedAt  int64           `json:"updated_at"`
+}
+
+func (q *Queries) UpdateJobReceiptByJobID(ctx context.Context, arg UpdateJobReceiptByJobIDParams) (JobReceipt, error) {
+	row := q.db.QueryRowContext(ctx, updateJobReceiptByJobID,
+		arg.JobID,
+		arg.Status,
+		arg.RetryCount,
+		arg.Message,
+		arg.JobName,
+		arg.JobContext,
+		arg.UpdatedAt,
+	)
+	var i JobReceipt
+	err := row.Scan(
+		&i.ID,
+		&i.JobID,
+		&i.Status,
+		&i.RetryCount,
+		&i.Message,
+		&i.JobName,
+		&i.JobContext,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateService = `-- name: UpdateService :one

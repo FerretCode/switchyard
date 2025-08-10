@@ -1,8 +1,4 @@
-CREATE TABLE services (
-    service_id VARCHAR(255) NOT NULL PRIMARY KEY,
-    job_name VARCHAR(255)
-);
-
+-- +goose Up
 CREATE TABLE job_receipts (
     id SERIAL PRIMARY KEY,
     job_id VARCHAR(255) NOT NULL UNIQUE,
@@ -14,3 +10,6 @@ CREATE TABLE job_receipts (
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL
 );
+
+-- +goose Down
+DROP TABLE job_receipts;

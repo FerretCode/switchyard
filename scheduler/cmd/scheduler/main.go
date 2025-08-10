@@ -63,8 +63,8 @@ func main() {
 
 	queries := repositories.New(conn)
 
-	messageBusService := messagebus.NewMessageBusService(logger, messageBusConn, &config, redisConn, ctx)
-	watchdogService := watchdog.NewWatchdogService(logger, &config, redisConn, &messageBusService, ctx)
+	messageBusService := messagebus.NewMessageBusService(logger, messageBusConn, &config, redisConn, ctx, queries)
+	watchdogService := watchdog.NewWatchdogService(logger, &config, redisConn, &messageBusService, ctx, queries)
 	schedulerService := scheduler.NewSchedulerService(logger, queries, ctx, &messageBusService)
 
 	r := chi.NewRouter()
@@ -83,6 +83,10 @@ func main() {
 
 		r.Post("/schedule-job", func(w http.ResponseWriter, r *http.Request) {
 			handleError(schedulerService.ScheduleJob(w, r), w, "scheduler/schedule-job")
+		})
+
+		r.Get("/get-job-statistics/{name}", func(w http.ResponseWriter, r *http.Request) {
+			handleError(schedulerService.GetJobStatistics(w, r), w, "scheduler/get-job-statistics")
 		})
 	})
 

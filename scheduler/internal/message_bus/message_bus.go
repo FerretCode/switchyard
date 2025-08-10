@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/ferretcode/switchyard/scheduler/internal/repositories"
 	"github.com/ferretcode/switchyard/scheduler/pkg/types"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -17,16 +18,18 @@ type MessageBusService struct {
 	Config    *types.Config
 	Conn      *amqp.Connection
 	RedisConn *redis.Client
+	Queries   *repositories.Queries
 	Context   context.Context
 }
 
-func NewMessageBusService(logger *slog.Logger, conn *amqp.Connection, config *types.Config, redisConn *redis.Client, context context.Context) MessageBusService {
+func NewMessageBusService(logger *slog.Logger, conn *amqp.Connection, config *types.Config, redisConn *redis.Client, context context.Context, queries *repositories.Queries) MessageBusService {
 	return MessageBusService{
 		Logger:    logger,
 		Conn:      conn,
 		RedisConn: redisConn,
 		Config:    config,
 		Context:   context,
+		Queries:   queries,
 	}
 }
 
@@ -101,6 +104,20 @@ func (m *MessageBusService) SendScheduleJobMessage(jobName string, jobContext ma
 		Score:  float64(time.Now().Unix()),
 		Member: jobId,
 	}).Err()
+	if err != nil {
+		return err
+	}
+
+	_, err = m.Queries.CreateJobReceipt(m.Context, repositories.CreateJobReceiptParams{
+		JobID:      jobId,
+		JobName:    jobName,
+		JobContext: json.RawMessage(contextBytes),
+		Status:     "pending",
+		RetryCount: 0,
+		Message:    "",
+		CreatedAt:  time.Now().Unix(),
+		UpdatedAt:  time.Now().Unix(),
+	})
 	if err != nil {
 		return err
 	}
@@ -201,7 +218,39 @@ func (m *MessageBusService) handleMessageFinishedDelivery(delivery amqp.Delivery
 		updatedStatus = "error"
 	}
 
-	err := m.RedisConn.HSet(m.Context, jobKey, "status", updatedStatus).Err()
+	retryCount, err := m.RedisConn.HGet(m.Context, jobKey, "retry_count").Int()
+	if err != nil {
+		m.Logger.Error("error fetching retry count from Redis", "err", err)
+		return
+	}
+
+	jobName, err := m.RedisConn.HGet(m.Context, jobKey, "job_name").Result()
+	if err != nil {
+		m.Logger.Error("error fetching job name from Redis", "err", err)
+		return
+	}
+
+	jobContext, err := m.RedisConn.HGet(m.Context, jobKey, "job_context").Result()
+	if err != nil {
+		m.Logger.Error("error fetching job context from Redis", "err", err)
+		return
+	}
+
+	_, err = m.Queries.UpdateJobReceiptByJobID(m.Context, repositories.UpdateJobReceiptByJobIDParams{
+		JobID:      finishJobMessage.JobId,
+		JobName:    jobName,
+		JobContext: json.RawMessage(jobContext),
+		Status:     updatedStatus,
+		Message:    finishJobMessage.Message,
+		UpdatedAt:  time.Now().Unix(),
+		RetryCount: int32(retryCount),
+	})
+	if err != nil {
+		m.Logger.Error("error updating job receipt in database", "err", err)
+		return
+	}
+
+	err = m.RedisConn.HSet(m.Context, jobKey, "status", updatedStatus).Err()
 	if err != nil {
 		m.Logger.Error("error updating job status", "err", err)
 		return

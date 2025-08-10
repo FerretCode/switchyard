@@ -28,34 +28,43 @@ func (a *AutoscaleService) getCurrentReplicas(project *gql.ProjectData, serviceI
 	return 0
 }
 
-func (a *AutoscaleService) makeScalingDecision(ctx types.ScalingContext) (int, string) {
+func (a *AutoscaleService) makeScalingDecision(ctx types.ScalingContext) (int, string, error) {
+	upscaleCooldown, err := time.ParseDuration(ctx.Service.UpscaleCooldown)
+	if err != nil {
+		return 0, "invalid-upscale-cooldown", err
+	}
+	downscaleCooldown, err := time.ParseDuration(ctx.Service.DownscaleCooldown)
+	if err != nil {
+		return 0, "invalid-downscale-cooldown", err
+	}
+
 	// emergency high usage
-	if (ctx.CpuPercent > 0.9 || ctx.MemPercent > 0.9) && ctx.Now.Sub(lastUpscaleTime) > a.Config.UpscaleCooldown/3 {
+	if (ctx.CpuPercent > 0.9 || ctx.MemPercent > 0.9) && ctx.Now.Sub(lastUpscaleTime) > upscaleCooldown/3 {
 		lastUpscaleTime = ctx.Now
 		consecutiveLowLoad = 0
-		return 2, "emergency-high-usage"
+		return 2, "emergency-high-usage", nil
 	}
 
 	// spike detection
-	if (ctx.HasCpuSpike || ctx.HasMemSpike) && ctx.Now.Sub(lastUpscaleTime) > a.Config.UpscaleCooldown/2 {
+	if (ctx.HasCpuSpike || ctx.HasMemSpike) && ctx.Now.Sub(lastUpscaleTime) > upscaleCooldown/2 {
 		lastUpscaleTime = ctx.Now
 		consecutiveLowLoad = 0
-		return 1, "spike-detected"
+		return 1, "spike-detected", nil
 	}
 
 	// predictive scaling
-	isSustainedHighLoad := ctx.AvgCpu > a.Config.RailwayCpuUpscaleThreshold || ctx.AvgMem > a.Config.RailwayMemoryUpscaleThreshold
+	isSustainedHighLoad := ctx.AvgCpu > ctx.Service.RailwayCpuUpscaleThreshold || ctx.AvgMem > ctx.Service.RailwayMemoryUpscaleThreshold
 	isIncreasingTrend := ctx.CpuTrend > 0.01 || ctx.MemTrend > 0.01
-	isNotInLowLoadZone := ctx.AvgCpu > a.Config.RailwayCpuDownscaleThreshold || ctx.AvgMem > a.Config.RailwayMemoryDownscaleThreshold
+	isNotInLowLoadZone := ctx.AvgCpu > ctx.Service.RailwayCpuDownscaleThreshold || ctx.AvgMem > ctx.Service.RailwayMemoryDownscaleThreshold
 
-	if (isSustainedHighLoad || (isIncreasingTrend && isNotInLowLoadZone)) && ctx.Now.Sub(lastUpscaleTime) > a.Config.UpscaleCooldown {
+	if (isSustainedHighLoad || (isIncreasingTrend && isNotInLowLoadZone)) && ctx.Now.Sub(lastUpscaleTime) > upscaleCooldown {
 		lastUpscaleTime = ctx.Now
 		consecutiveLowLoad = 0
-		return 1, "proactive-upscale"
+		return 1, "proactive-upscale", nil
 	}
 
 	// downscaling
-	isLowLoad := ctx.AvgCpu < a.Config.RailwayCpuDownscaleThreshold && ctx.AvgMem < a.Config.RailwayMemoryDownscaleThreshold
+	isLowLoad := ctx.AvgCpu < ctx.Service.RailwayCpuDownscaleThreshold && ctx.AvgMem < ctx.Service.RailwayMemoryDownscaleThreshold
 
 	if isLowLoad {
 		consecutiveLowLoad++
@@ -64,16 +73,16 @@ func (a *AutoscaleService) makeScalingDecision(ctx types.ScalingContext) (int, s
 	}
 
 	if consecutiveLowLoad >= 4 &&
-		ctx.CurrentReplicas > a.Config.MinReplicaCount &&
-		ctx.Now.Sub(lastDownscaleTime) > a.Config.DownscaleCooldown {
+		ctx.CurrentReplicas > int(ctx.Service.MinReplicaCount) &&
+		ctx.Now.Sub(lastDownscaleTime) > downscaleCooldown {
 
 		lastDownscaleTime = ctx.Now
 		consecutiveLowLoad = 0
-		return -1, "sustained-low-usage"
+		return -1, "sustained-low-usage", nil
 	}
 
 	// no scaling required
-	return 0, "no-scaling"
+	return 0, "no-scaling", nil
 }
 
 func extractMetrics(metrics *gql.MetricsData) (float64, float64) {

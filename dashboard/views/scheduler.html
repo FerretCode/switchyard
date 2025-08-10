@@ -1,0 +1,349 @@
+<div id="scheduler" class="section hidden">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Job Scheduler</h1>
+            <p class="text-base-content/70 mt-2">
+                Manage worker services and schedule jobs
+            </p>
+        </div>
+        <div class="flex items-center gap-2 text-sm text-base-content/60">
+            <i class="fas fa-clock"></i>
+            <span id="scheduler-last-refresh">Last refreshed: --:--:--</span>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <button class="btn btn-primary btn-sm" onclick="openRegisterModal()">
+            <i class="fas fa-plus mr-2"></i> Register Worker Service
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="openScheduleModal()">
+            <i class="fas fa-calendar-plus mr-2"></i> Schedule Job
+        </button>
+    </div>
+
+    <div class="grid gap-6 grid-cols-1" id="scheduler-services"></div>
+</div>
+
+<dialog id="register-modal" class="modal">
+    <form method="dialog" class="modal-box" id="register-form">
+        <h3 class="font-bold text-lg">Register Worker Service</h3>
+        <p class="py-2">
+            Provide the details for the worker service you want to register.
+        </p>
+
+        <div class="form-control">
+            <label class="label">Job Name</label>
+            <input
+                type="text"
+                id="register-job-name"
+                name="job_name"
+                class="input input-bordered"
+                required
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">Service ID</label>
+            <input
+                type="text"
+                id="register-service-id"
+                name="service_id"
+                class="input input-bordered"
+                required
+            />
+        </div>
+
+        <div class="modal-action">
+            <button type="submit" class="btn btn-primary">Register</button>
+            <button
+                type="button"
+                class="btn"
+                onclick="document.getElementById('register-modal').close()"
+            >
+                Cancel
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="schedule-modal" class="modal">
+    <form method="dialog" class="modal-box" id="schedule-form">
+        <h3 class="font-bold text-lg">Schedule Job</h3>
+        <p class="py-2">
+            Schedule a job to be executed by a registered worker service.
+        </p>
+
+        <div class="form-control mt-2">
+            <label class="label">Job Name</label>
+            <input
+                type="text"
+                id="schedule-job-name"
+                name="job_name"
+                class="input input-bordered"
+                required
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">Context (JSON)</label>
+            <textarea
+                id="schedule-payload"
+                name="payload"
+                class="textarea textarea-bordered"
+            ></textarea>
+        </div>
+
+        <div class="modal-action">
+            <button type="submit" class="btn btn-primary">Schedule</button>
+            <button
+                type="button"
+                class="btn"
+                onclick="document.getElementById('schedule-modal').close()"
+            >
+                Cancel
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<script>
+    function updateSchedulerRefreshTime() {
+        document.getElementById(
+            "scheduler-last-refresh"
+        ).textContent = `Last refreshed: ${new Date().toLocaleTimeString()}`;
+    }
+
+    async function fetchSchedulerServices() {
+        try {
+            const res = await fetch("/api/autoscale/list-services"); // Replace if you have a scheduler-specific list endpoint
+
+            if (!res.ok) throw new Error("Failed to fetch scheduler services");
+
+            const data = await res.json();
+
+            renderSchedulerServices(data.services || []);
+            updateSchedulerRefreshTime();
+        } catch (err) {
+            console.error("Error fetching scheduler services:", err);
+            alert("Failed to load scheduler services.");
+        }
+    }
+
+    async function renderSchedulerServices(services) {
+        const container = document.getElementById("scheduler-services");
+        container.innerHTML = "";
+
+        for (const service of services) {
+            const card = document.createElement("div");
+            card.className = "card bg-base-100 shadow-xl card-hover mb-4";
+            card.innerHTML = `
+                <div class="card-body">
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <div class="avatar placeholder">
+                                <div class="bg-primary text-primary-content rounded-lg w-12">
+                                    <i class="fas fa-network-wired text-xl"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-semibold">${
+                                    service.job_name || service.service_name
+                                }</h3>
+                                <p class="text-base-content/70 font-mono text-sm">${
+                                    service.service_id
+                                }</p>
+                            </div>
+                            <button class="btn btn-error btn-sm unregister-btn">Unregister</button>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="badge badge-${
+                                service.job_name === "" ? "error" : "success"
+                            }">
+                                <i class="mr-2 fas fa-${
+                                    service.job_name === ""
+                                        ? "exclamation-circle"
+                                        : "check-circle"
+                                }"></i>
+                                ${
+                                    service.job_name === ""
+                                        ? "Unregistered"
+                                        : "Registered"
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="stats-container-${
+                        service.service_id
+                    }">
+                        <!-- Stats cards will go here -->
+                        <div class="stat bg-base-200 rounded-lg animate-pulse">
+                            <div class="stat-title text-xs">Loading stats...</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            card.querySelector(".unregister-btn").addEventListener(
+                "click",
+                () => {
+                    unregisterWorker(service.service_id);
+                }
+            );
+
+            container.appendChild(card);
+
+            const stats = await fetchJobStatistics(service.job_name);
+            const statsContainer = card.querySelector(
+                `#stats-container-${service.service_id}`
+            );
+
+            console.log(stats);
+
+            if (!stats || Object.keys(stats).length === 0) {
+                statsContainer.innerHTML = `<div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title text-xs text-error">No statistics available</div>
+                </div>`;
+
+                continue;
+            }
+
+            statsContainer.innerHTML = `
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title text-xs">Total Runs</div>
+                    <div class="stat-value">${stats.total_receipts}</div>
+                </div>
+
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title text-xs">Successes</div>
+                    <div class="stat-value text-success">${stats.ok_count}</div>
+                </div>
+
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title text-xs">Failures</div>
+                    <div class="stat-value text-error">${
+                        stats.error_count
+                    }</div>
+                </div>
+
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title text-xs">Retries (avg)</div>
+                    <div class="stat-value">${parseFloat(
+                        stats.avg_retry_count
+                    ).toFixed(2)}</div>
+                </div>
+            `;
+        }
+    }
+
+    function openRegisterModal() {
+        document.getElementById("register-form").reset();
+        document.getElementById("register-modal").showModal();
+    }
+
+    function openScheduleModal() {
+        document.getElementById("schedule-form").reset();
+        document.getElementById("schedule-modal").showModal();
+    }
+
+    document
+        .getElementById("register-form")
+        .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const payload = {
+                job_name: document.getElementById("register-job-name").value,
+                service_id: document.getElementById("register-service-id")
+                    .value,
+            };
+
+            try {
+                const res = await fetch(
+                    "/api/scheduler/register-worker-service",
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    }
+                );
+
+                if (!res.ok) throw new Error("Failed to register service");
+
+                document.getElementById("register-modal").close();
+                fetchSchedulerServices();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+    document
+        .getElementById("schedule-form")
+        .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const payload = {
+                job_name: document.getElementById("schedule-job-name").value,
+                payload: document.getElementById("schedule-payload").value,
+            };
+
+            try {
+                const res = await fetch("/api/scheduler/schedule-job", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!res.ok) throw new Error("Failed to schedule job");
+
+                document.getElementById("schedule-modal").close();
+                fetchSchedulerServices();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+    async function fetchJobStatistics(jobName) {
+        if (!jobName) return null;
+
+        try {
+            const res = await fetch(
+                `/api/scheduler/get-job-statistics/${encodeURIComponent(
+                    jobName
+                )}`
+            );
+
+            if (!res.ok) throw new Error("Failed to fetch job statistics");
+
+            const stats = await res.json();
+
+            console.log(`Stats for job ${jobName}:`, stats);
+
+            return stats;
+        } catch (err) {
+            console.warn(`Could not load stats for job ${jobName}`, err);
+            return null;
+        }
+    }
+
+    async function unregisterWorker(id) {
+        if (!confirm("Unregister this worker service?")) return;
+
+        try {
+            const res = await fetch(
+                `/scheduler/unregister-worker-service/${id}`,
+                { method: "DELETE" }
+            );
+
+            if (!res.ok) throw new Error("Failed to unregister worker service");
+
+            fetchSchedulerServices();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    function startSchedulerPolling(interval = 15000) {
+        fetchSchedulerServices();
+        setInterval(fetchSchedulerServices, interval);
+    }
+
+    startSchedulerPolling();
+</script>

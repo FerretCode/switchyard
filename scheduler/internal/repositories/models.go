@@ -6,7 +6,20 @@ package repositories
 
 import (
 	"database/sql"
+	"encoding/json"
 )
+
+type JobReceipt struct {
+	ID         int32           `json:"id"`
+	JobID      string          `json:"job_id"`
+	Status     string          `json:"status"`
+	RetryCount int32           `json:"retry_count"`
+	Message    string          `json:"message"`
+	JobName    string          `json:"job_name"`
+	JobContext json.RawMessage `json:"job_context"`
+	CreatedAt  int64           `json:"created_at"`
+	UpdatedAt  int64           `json:"updated_at"`
+}
 
 type Service struct {
 	ServiceID string         `json:"service_id"`

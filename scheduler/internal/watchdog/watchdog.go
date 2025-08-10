@@ -8,6 +8,7 @@ import (
 	"time"
 
 	messagebus "github.com/ferretcode/switchyard/scheduler/internal/message_bus"
+	"github.com/ferretcode/switchyard/scheduler/internal/repositories"
 	"github.com/ferretcode/switchyard/scheduler/pkg/types"
 	"github.com/redis/go-redis/v9"
 )
@@ -17,16 +18,18 @@ type WatchdogService struct {
 	Config            *types.Config
 	RedisConn         *redis.Client
 	MessageBusService *messagebus.MessageBusService
+	Queries           *repositories.Queries
 	Context           context.Context
 }
 
-func NewWatchdogService(logger *slog.Logger, config *types.Config, redisConn *redis.Client, messageBusService *messagebus.MessageBusService, context context.Context) WatchdogService {
+func NewWatchdogService(logger *slog.Logger, config *types.Config, redisConn *redis.Client, messageBusService *messagebus.MessageBusService, context context.Context, queries *repositories.Queries) WatchdogService {
 	return WatchdogService{
 		Logger:            logger,
 		Config:            config,
 		RedisConn:         redisConn,
 		MessageBusService: messageBusService,
 		Context:           context,
+		Queries:           queries,
 	}
 }
 
@@ -78,9 +81,37 @@ func (w *WatchdogService) checkStuckJobs() {
 		}
 
 		if retryCount >= w.Config.WorkerMaxJobRetries {
+			jobName, err := w.RedisConn.HGet(w.Context, jobKey, "job_name").Result()
+			if err != nil {
+				w.Logger.Error("error fetching job name from Redis", "err", err)
+				return
+			}
+
+			jobContext, err := w.RedisConn.HGet(w.Context, jobKey, "job_context").Result()
+			if err != nil {
+				w.Logger.Error("error fetching job context from Redis", "err", err)
+				return
+			}
+
 			w.RedisConn.HSet(w.Context, jobKey, "status", "error", "updated_at", now)
 			w.RedisConn.ZRem(w.Context, "jobs:pending", jobId)
-			w.Logger.Error("job marked as failed after max retries", "job-id", jobId)
+
+			_, err = w.Queries.UpdateJobReceiptByJobID(w.Context, repositories.UpdateJobReceiptByJobIDParams{
+				JobID:      jobId,
+				JobName:    jobName,
+				JobContext: json.RawMessage(jobContext),
+				Status:     "error",
+				UpdatedAt:  now,
+				RetryCount: int32(retryCount),
+				Message:    "marked as failed after max retries",
+			})
+
+			if err != nil {
+				w.Logger.Error("error updating job receipt to error in database", "err", err, "job-id", jobId)
+			} else {
+				w.Logger.Error("job marked as failed after max retries", "job-id", jobId)
+			}
+
 			continue
 		}
 

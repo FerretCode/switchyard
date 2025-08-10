@@ -15,33 +15,139 @@
     <div class="grid gap-6 grid-cols-1" id="autoscaling-services"></div>
 </div>
 
+<dialog id="configure-modal" class="modal">
+    <form method="dialog" class="modal-box" id="configure-form">
+        <h3 class="font-bold text-lg">Configure Service</h3>
+        <p class="py-2">Modify autoscaling parameters for your service.</p>
+
+        <input type="hidden" id="config-service-id" name="service_id" />
+
+        <div class="form-control mt-2">
+            <label class="label">Min Replicas</label>
+            <input
+                type="number"
+                id="config-min-replicas"
+                name="min_replicas"
+                class="input input-bordered"
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">Max Replicas</label>
+            <input
+                type="number"
+                id="config-max-replicas"
+                name="max_replicas"
+                class="input input-bordered"
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">CPU Upscale Threshold (&percnt;)</label>
+            <input
+                type="number"
+                step="0.01"
+                id="config-cpu-upscale"
+                name="cpu_upscale_threshold"
+                class="input input-bordered"
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">Memory Upscale Threshold (&percnt;)</label>
+            <input
+                type="number"
+                step="0.01"
+                id="config-memory-upscale"
+                name="memory_upscale_threshold"
+                class="input input-bordered"
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">CPU Downscale Threshold (&percnt;)</label>
+            <input
+                type="number"
+                step="0.01"
+                id="config-cpu-downscale"
+                name="cpu_downscale_threshold"
+                class="input input-bordered"
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">Memory Downscale Threshold (&percnt;)</label>
+            <input
+                type="number"
+                step="0.01"
+                id="config-memory-downscale"
+                name="memory_downscale_threshold"
+                class="input input-bordered"
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">Upscale Cooldown</label>
+            <input
+                type="text"
+                id="config-upscale-cooldown"
+                name="upscale_cooldown"
+                class="input input-bordered"
+            />
+        </div>
+
+        <div class="form-control mt-2">
+            <label class="label">Downscale Cooldown</label>
+            <input
+                type="text"
+                id="config-downscale-cooldown"
+                name="downscale_cooldown"
+                class="input input-bordered"
+            />
+        </div>
+
+        <div class="modal-action">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button
+                type="button"
+                class="btn"
+                onclick="document.getElementById('configure-modal').close()"
+            >
+                Cancel
+            </button>
+        </div>
+    </form>
+</dialog>
+
 <script>
     function updateRefreshTime() {
         const now = new Date();
-        const formattedTime = now.toLocaleTimeString();
         document.getElementById(
             "last-refresh-time"
-        ).textContent = `Last refreshed: ${formattedTime}`;
+        ).textContent = `Last refreshed: ${now.toLocaleTimeString()}`;
     }
 
     async function fetchAutoscalingServices() {
         try {
             const response = await fetch("/api/autoscale/list-services");
-            if (!response.ok) {
+
+            if (!response.ok)
                 throw new Error("Failed to fetch autoscaling services");
-            }
+
             const services = await response.json();
-            console.log("Fetched autoscaling services:", services);
+
             renderAutoscalingServices(services.services);
             updateRefreshTime();
         } catch (error) {
             console.error("Error fetching autoscaling services:", error);
+            alert(
+                "Failed to load autoscaling services. Please try again later."
+            );
         }
     }
 
     function renderAutoscalingServices(services) {
         services.sort((a, b) => b.enabled - a.enabled);
-
         const container = document.getElementById("autoscaling-services");
         container.innerHTML = "";
 
@@ -49,150 +155,243 @@
             const card = document.createElement("div");
             card.className = "card bg-base-100 shadow-xl card-hover";
             card.innerHTML = `
-                <div class="card-body">
-                    <div class="flex items-start justify-between mb-6">
-                        <div class="flex items-center gap-4">
-                            <div class="avatar placeholder">
-                                <div class="bg-primary text-primary-content rounded-lg w-12">
-                                    <i class="fas fa-server text-xl"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex items-center gap-3 mb-2">
-                                    <h3 class="text-xl font-semibold">${
-                                        service.job_name
-                                    }</h3>
-                                    <div class="badge badge-error">${
-                                        service.environment_name
-                                    }</div>
-                                </div>
-                                <p class="text-base-content/70 font-mono text-sm">${
-                                    service.service_id
-                                }</p>
+            <div class="card-body">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="flex items-center gap-4">
+                        <div class="avatar placeholder">
+                            <div class="bg-primary text-primary-content rounded-lg w-12">
+                                <i class="fas fa-server text-xl"></i>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <div class="badge badge-${
-                                service.enabled ? "success" : "error"
-                            }">
-                                <i class="mr-2 fas fa-${
-                                    service.enabled
-                                        ? "check-circle"
-                                        : "exclamation-circle"
-                                }"></i>
-                                ${service.enabled ? "Enabled" : "Disabled"}
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-xl font-semibold">${
+                                    service.service_name
+                                }</h3>
+                                <div class="badge badge-error">${
+                                    service.environment_name
+                                }</div>
                             </div>
+                            <p class="text-base-content/70 font-mono text-sm">${
+                                service.service_id
+                            }</p>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div class="stat bg-base-200 rounded-lg">
-                            <div class="stat-figure text-primary">
-                                <i class="fas fa-layer-group text-2xl"></i>
-                            </div>
-                            <div class="stat-title text-xs">Replicas</div>
-                            <div class="stat-value text-lg">${
-                                service.min_replicas
-                            } - ${service.max_replicas}</div>
-                        </div>
-
-                        <div class="stat bg-base-200 rounded-lg">
-                            <div class="stat-figure text-success">
-                                <i class="fas fa-microchip text-2xl"></i>
-                            </div>
-                            <div class="stat-title text-xs">CPU Trigger</div>
-                            <div class="stat-value text-lg">${
-                                service.cpu_upscale_threshold
-                            }%</div>
-                        </div>
-
-                        <div class="stat bg-base-200 rounded-lg">
-                            <div class="stat-figure text-secondary">
-                                <i class="fas fa-memory text-2xl"></i>
-                            </div>
-                            <div class="stat-title text-xs">Memory Trigger</div>
-                            <div class="stat-value text-lg">${
-                                service.memory_upscale_threshold
-                            }%</div>
-                        </div>
-
-                        <div class="stat bg-base-200 rounded-lg">
-                            <div class="stat-figure text-warning">
-                                <i class="fas fa-clock text-2xl"></i>
-                            </div>
-                            <div class="stat-title text-xs">Cooldowns</div>
-                            <div class="stat-value text-sm">
-                                <div>Up: ${service.upscale_cooldown}</div>
-                                <div>Down: ${service.downscale_cooldown}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex items-center justify-between pt-4 border-t border-base-300"
-                    >
-                        <div
-                            class="flex items-center gap-4 text-sm text-base-content/60"
-                        >
-                            <span>Last deployment: ${
-                                service.last_scaled_at
-                            }</span>
-                            <span>Current replicas: ${service.replicas}</span>
-                        </div>
-
-                        <div class="flex gap-2">
-                            <button class="btn btn-outline btn-sm">
-                                <a target="_blank" href="https://railway.com/project/${
-                                    service.project_id
-                                }/service/${
-                service.service_id
-            }/metrics?environmentId=${service.environment_id}">View Metrics</a>
-                            </button>
-                            <button class="btn btn-${
-                                service.enabled ? "danger" : "primary"
-                            } btn-sm" onclick="toggleService('${
-                service.service_id
-            }', ${service.enabled})">
-                                ${service.enabled ? "Disable" : "Enable"}
-                            </button>
-                            <button class="disabled btn btn-disabled btn-sm">
-                                Configure
-                            </button>
+                    <div class="flex items-center gap-3">
+                        <div class="badge badge-${
+                            service.enabled ? "success" : "error"
+                        }">
+                            <i class="mr-2 fas fa-${
+                                service.enabled
+                                    ? "check-circle"
+                                    : "exclamation-circle"
+                            }"></i>
+                            ${service.enabled ? "Enabled" : "Disabled"}
                         </div>
                     </div>
                 </div>
-            `;
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="stat bg-base-200 rounded-lg">
+                        <div class="stat-figure text-primary">
+                            <i class="fas fa-layer-group text-2xl"></i>
+                        </div>
+                        <div class="stat-title text-xs">Replicas</div>
+                        <div class="stat-value text-lg">${
+                            service.min_replicas
+                        } - ${service.max_replicas}</div>
+                    </div>
+
+                    <div class="stat bg-base-200 rounded-lg">
+                        <div class="stat-figure text-success">
+                            <i class="fas fa-microchip text-2xl"></i>
+                        </div>
+                        <div class="stat-title text-xs">CPU Triggers</div>
+                        <div class="stat-value text-sm flex flex-col gap-1 mt-1">
+                            <span class="flex items-center gap-1 text-success">
+                                <i class="fas fa-arrow-up"></i> ${
+                                    service.cpu_upscale_threshold
+                                }%
+                            </span>
+                            <span class="flex items-center gap-1 text-error">
+                                <i class="fas fa-arrow-down"></i> ${
+                                    service.cpu_downscale_threshold
+                                }%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="stat bg-base-200 rounded-lg">
+                        <div class="stat-figure text-secondary">
+                            <i class="fas fa-memory text-2xl"></i>
+                        </div>
+                        <div class="stat-title text-xs">Memory Trigger</div>
+                        <div class="stat-value text-sm flex flex-col gap-1 mt-1">
+                            <span class="flex items-center gap-1 text-success">
+                                <i class="fas fa-arrow-up"></i> ${
+                                    service.memory_upscale_threshold
+                                }%
+                            </span>
+                            <span class="flex items-center gap-1 text-error">
+                                <i class="fas fa-arrow-down"></i> ${
+                                    service.memory_downscale_threshold
+                                }%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="stat bg-base-200 rounded-lg">
+                        <div class="stat-figure text-warning">
+                            <i class="fas fa-clock text-2xl"></i>
+                        </div>
+                        <div class="stat-title text-xs">Cooldowns</div>
+                        <div class="stat-value text-sm">
+                            <div>Up: ${service.upscale_cooldown}</div>
+                            <div>Down: ${service.downscale_cooldown}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-base-300">
+                    <div class="flex items-center gap-4 text-sm text-base-content/60">
+                        <span>Last deployment: ${service.last_scaled_at}</span>
+                        <span>Current replicas: ${service.replicas}</span>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button class="btn btn-outline btn-sm">
+                            <a target="_blank" href="https://railway.com/project/${
+                                service.project_id
+                            }/service/${
+                service.service_id
+            }/metrics?environmentId=${service.environment_id}">View Metrics</a>
+                        </button>
+                        <button class="btn btn-${
+                            service.enabled ? "error" : "primary"
+                        } btn-sm toggle-btn">
+                            ${service.enabled ? "Disable" : "Enable"}
+                        </button>
+                        <button class="btn btn-secondary btn-sm config-btn">
+                            Configure
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+            card.querySelector(".toggle-btn").addEventListener("click", () => {
+                toggleService(service.service_id, service.enabled);
+            });
+            card.querySelector(".config-btn").addEventListener("click", () => {
+                openConfigureModal(service);
+            });
+
             container.appendChild(card);
         });
     }
+
+    function openConfigureModal(service) {
+        document.getElementById("config-service-id").value = service.service_id;
+        document.getElementById("config-service-name").value =
+            service.service_name || "";
+        document.getElementById("config-min-replicas").value =
+            service.min_replicas;
+        document.getElementById("config-max-replicas").value =
+            service.max_replicas;
+        document.getElementById("config-cpu-upscale").value =
+            service.cpu_upscale_threshold;
+        document.getElementById("config-memory-upscale").value =
+            service.memory_upscale_threshold;
+        document.getElementById("config-cpu-downscale").value =
+            service.cpu_downscale_threshold;
+        document.getElementById("config-memory-downscale").value =
+            service.memory_downscale_threshold;
+        document.getElementById("config-upscale-cooldown").value =
+            service.upscale_cooldown;
+        document.getElementById("config-downscale-cooldown").value =
+            service.downscale_cooldown;
+        document.getElementById("configure-modal").showModal();
+    }
+
+    document
+        .getElementById("configure-form")
+        .addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const data = {
+                service_id: document.getElementById("config-service-id").value,
+                service_name: document.getElementById("config-service-name")
+                    .value,
+                railway_min_replica_count: parseInt(
+                    document.getElementById("config-min-replicas").value
+                ),
+                railway_max_replica_count: parseInt(
+                    document.getElementById("config-max-replicas").value
+                ),
+                railway_cpu_upscale_threshold:
+                    parseFloat(
+                        document.getElementById("config-cpu-upscale").value
+                    ) / 100,
+                railway_memory_upscale_threshold:
+                    parseFloat(
+                        document.getElementById("config-memory-upscale").value
+                    ) / 100,
+                railway_cpu_downscale_threshold:
+                    parseFloat(
+                        document.getElementById("config-cpu-downscale").value
+                    ) / 100,
+                railway_memory_downscale_threshold:
+                    parseFloat(
+                        document.getElementById("config-memory-downscale").value
+                    ) / 100,
+                upscale_cooldown: document.getElementById(
+                    "config-upscale-cooldown"
+                ).value,
+                downscale_cooldown: document.getElementById(
+                    "config-downscale-cooldown"
+                ).value,
+            };
+
+            try {
+                const response = await fetch(
+                    "/api/autoscale/configure-service",
+                    {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data),
+                    }
+                );
+
+                if (!response.ok) throw new Error("Failed to update service");
+
+                document.getElementById("configure-modal").close();
+
+                fetchAutoscalingServices();
+            } catch (err) {
+                alert("Error updating service: " + err.message);
+            }
+        });
 
     async function toggleService(serviceId, isEnabled) {
         try {
             const response = await fetch(
                 `/api/autoscale/toggle-service-registered?service=${serviceId}&enabled=${!isEnabled}`,
-                {
-                    method: "PATCH",
-                }
+                { method: "PATCH" }
             );
-            if (!response.ok) {
+
+            if (!response.ok)
                 throw new Error("Failed to toggle service status");
-            }
+
             fetchAutoscalingServices();
         } catch (error) {
-            console.error("Error toggling service status:", error);
+            alert("Failed to toggle service status. Please try again later.");
         }
     }
 
     function startPolling(interval = 15000) {
-        console.log(
-            "Starting autoscaling services polling every",
-            interval,
-            "ms"
-        );
         fetchAutoscalingServices();
         setInterval(fetchAutoscalingServices, interval);
     }
 
     startPolling();
-    fetchAutoscalingServices();
 </script>

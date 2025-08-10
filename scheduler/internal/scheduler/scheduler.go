@@ -30,6 +30,26 @@ func NewSchedulerService(logger *slog.Logger, queries *repositories.Queries, con
 	}
 }
 
+func (s *SchedulerService) GetJobStatistics(w http.ResponseWriter, r *http.Request) error {
+	jobName := chi.URLParam(r, "name")
+
+	jobStatistics, err := s.Queries.AggregateJobReceiptsByJobID(s.Context, jobName)
+	if err != nil {
+		return fmt.Errorf("error fetching job statistics: %w", err)
+	}
+
+	responseBytes, err := json.Marshal(jobStatistics)
+	if err != nil {
+		return fmt.Errorf("error encoding job statistics: %w", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseBytes)
+
+	return nil
+}
+
 func (s *SchedulerService) RegisterWorkerService(w http.ResponseWriter, r *http.Request) error {
 	requestBytes, err := io.ReadAll(r.Body)
 	if err != nil {

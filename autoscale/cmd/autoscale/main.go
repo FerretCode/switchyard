@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/caarlos0/env"
 	"github.com/ferretcode/switchyard/autoscale/internal/autoscale"
@@ -22,25 +21,6 @@ import (
 
 var logger *slog.Logger
 var config types.Config
-
-const (
-	monitoringInterval = 10 * time.Second
-	metricHistorySize  = 12
-	upscaleCooldown    = 2 * time.Minute
-	downscaleCooldown  = 1 * time.Minute
-	minReplicaCount    = 1
-	maxReplicaCount    = 10
-
-	spikeThreshold = 0.7
-	spikeWindow    = 3
-)
-
-var (
-	lastUpscaleTime     time.Time
-	lastDownscaleTime   time.Time
-	consecutiveHighLoad int
-	consecutiveLowLoad  int
-)
 
 func main() {
 	ctx := context.Background()
@@ -90,6 +70,10 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/autoscale", func(r chi.Router) {
+		r.Post("/upsert-service", func(w http.ResponseWriter, r *http.Request) {
+			handleError(autoscalingService.UpsertService(w, r), w, "autoscale/upsert")
+		})
+
 		r.Post("/register-service", func(w http.ResponseWriter, r *http.Request) {
 			handleError(autoscalingService.RegisterService(w, r), w, "autoscale/register")
 		})
@@ -100,6 +84,10 @@ func main() {
 
 		r.Get("/list-services", func(w http.ResponseWriter, r *http.Request) {
 			handleError(autoscalingService.ListServices(w, r), w, "autoscale/list")
+		})
+
+		r.Patch("/set-service-enabled/{id}", func(w http.ResponseWriter, r *http.Request) {
+			handleError(autoscalingService.SetServiceEnabled(w, r), w, "autoscale/set-enabled")
 		})
 	})
 

@@ -22,6 +22,39 @@ func NewAutoscaleService(logger *slog.Logger, config *types.Config) AutoscaleSer
 	}
 }
 
+func PropagateRequest(w http.ResponseWriter, r *http.Request, method, url string) error {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return nil
+	}
+
+	req, err := http.NewRequest(method, url, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	responseBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(res.StatusCode)
+	w.Write(responseBytes)
+	return nil
+}
+
+func (a *AutoscaleService) ConfigureService(w http.ResponseWriter, r *http.Request) error {
+	url := a.Config.AutoscaleServiceUrl + "/autoscale/upsert-service"
+	return PropagateRequest(w, r, "POST", url)
+}
+
 func (a *AutoscaleService) ToggleServiceRegistered(w http.ResponseWriter, r *http.Request) error {
 	serviceId := r.URL.Query().Get("service")
 	if serviceId == "" {
@@ -39,17 +72,18 @@ func (a *AutoscaleService) ToggleServiceRegistered(w http.ResponseWriter, r *htt
 	var req *http.Request
 
 	if enabled == "true" {
-		registerServiceRequest := RegisterServiceRequest{
-			ServiceId: serviceId,
+		upsertServiceRequest := UpsertServiceRequest{
+			ServiceId: &serviceId,
+			Enabled:   newBoolPtr(true),
 		}
-		requestBytes, err := json.Marshal(registerServiceRequest)
+		requestBytes, err := json.Marshal(upsertServiceRequest)
 		if err != nil {
 			http.Error(w, "Error creating request body", http.StatusInternalServerError)
 			return nil
 		}
 
 		req, err = http.NewRequest(
-			"POST", a.Config.AutoscaleServiceUrl+"/autoscale/register-service", bytes.NewReader(requestBytes),
+			"POST", a.Config.AutoscaleServiceUrl+"/autoscale/upsert-service", bytes.NewReader(requestBytes),
 		)
 		if err != nil {
 			return err
@@ -109,4 +143,9 @@ func (a *AutoscaleService) ListServices(w http.ResponseWriter, r *http.Request) 
 	w.Write(responseBytes) // we'll just send back what we got from the server originally
 
 	return nil
+}
+
+func newBoolPtr(value bool) *bool {
+	b := value
+	return &b
 }

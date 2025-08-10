@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/ferretcode/switchyard/autoscale/internal/repositories"
+)
 
 type Config struct {
 	Port                            string        `env:"PORT" json:"port,omitempty"`
@@ -42,4 +46,5 @@ type ScalingContext struct {
 	MemTrend        float64
 	CurrentReplicas int
 	Now             time.Time
+	Service         repositories.Service
 }

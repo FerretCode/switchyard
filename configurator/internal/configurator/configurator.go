@@ -27,6 +27,7 @@ var ConfigRegistry = map[string]any{
 	"autoscale":     autoscale.Config{},
 	"feature-flags": featureflags.Config{},
 	"incident":      incident.Config{},
+	"locomotive":    LocomotiveConfig{},
 }
 
 type ConfiguratorService struct {

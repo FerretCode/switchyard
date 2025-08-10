@@ -71,26 +71,26 @@ func (a *AutoscaleService) StartAutoscaling() {
 	}
 }
 
-func (a *AutoscaleService) processServiceId(serviceId string, project *gql.ProjectData) {
+func (a *AutoscaleService) processServiceId(validService ValidService, project *gql.ProjectData) {
 	startDate := time.Now().Format(time.RFC3339)
 
-	history, ok := a.ServiceHistoryCache.ServiceHistories[serviceId]
+	history, ok := a.ServiceHistoryCache.ServiceHistories[validService.ServiceId]
 	if !ok {
 		history = types.MetricHistory{
 			CPU:    make([]float64, 0, a.Config.MetricHistorySize),
 			Memory: make([]float64, 0, a.Config.MetricHistorySize),
 			Times:  make([]time.Time, 0, a.Config.MetricHistorySize),
 		}
-		a.ServiceHistoryCache.ServiceHistories[serviceId] = history
+		a.ServiceHistoryCache.ServiceHistories[validService.ServiceId] = history
 	}
 
-	metrics, err := a.GqlQueries.QueryServiceMetrics(serviceId, startDate)
+	metrics, err := a.GqlQueries.QueryServiceMetrics(validService.ServiceId, startDate)
 	if err != nil {
 		a.Logger.Error("error fetching service metrics", "err", err)
 		return
 	}
 
-	currentReplicas := a.getCurrentReplicas(project, serviceId)
+	currentReplicas := a.getCurrentReplicas(project, validService.ServiceId)
 
 	cpuPercent, memPercent := extractMetrics(metrics)
 
@@ -105,7 +105,7 @@ func (a *AutoscaleService) processServiceId(serviceId string, project *gql.Proje
 		history.Times = history.Times[1:]
 	}
 
-	a.ServiceHistoryCache.ServiceHistories[serviceId] = history
+	a.ServiceHistoryCache.ServiceHistories[validService.ServiceId] = history
 
 	avgCpu := calculateWeightedAverage(history.CPU)
 	avgMem := calculateWeightedAverage(history.Memory)
@@ -116,7 +116,7 @@ func (a *AutoscaleService) processServiceId(serviceId string, project *gql.Proje
 	cpuTrend := calculateTrend(history.CPU, history.Times)
 	memTrend := calculateTrend(history.Memory, history.Times)
 
-	scalingDecision, reason := a.makeScalingDecision(
+	scalingDecision, reason, err := a.makeScalingDecision(
 		types.ScalingContext{
 			CpuPercent:      cpuPercent,
 			MemPercent:      memPercent,
@@ -128,24 +128,29 @@ func (a *AutoscaleService) processServiceId(serviceId string, project *gql.Proje
 			MemTrend:        memTrend,
 			CurrentReplicas: currentReplicas,
 			Now:             now,
+			Service:         validService.Service,
 		},
 	)
+	if err != nil {
+		a.Logger.Error("error making scaling decision", "err", err)
+		return
+	}
 
 	if scalingDecision != 0 {
 		newReplicas := currentReplicas + scalingDecision
-		if newReplicas >= a.Config.MinReplicaCount && newReplicas <= a.Config.MaxReplicaCount {
+		if newReplicas >= int(validService.Service.MinReplicaCount) && newReplicas <= int(validService.Service.MaxReplicaCount) {
 			a.Logger.Info("scaling decision reached",
 				"current_replicas", currentReplicas,
 				"new_replicas", newReplicas,
 				"reason", reason,
 			)
 
-			err = a.GqlQueries.MutationUpdateReplicas(a.Config.RailwayEnvironmentId, serviceId, a.Config.RailwaySelectedRegion, newReplicas)
+			err = a.GqlQueries.MutationUpdateReplicas(a.Config.RailwayEnvironmentId, validService.ServiceId, a.Config.RailwaySelectedRegion, newReplicas)
 			if err != nil {
 				a.Logger.Error("error scaling service", "err", err)
 			}
 
-			err = a.GqlQueries.MutationServiceInstanceRedeploy(a.Config.RailwayEnvironmentId, serviceId)
+			err = a.GqlQueries.MutationServiceInstanceRedeploy(a.Config.RailwayEnvironmentId, validService.ServiceId)
 			if err != nil {
 				a.Logger.Error("error redeploying scaled service", "err", err)
 			}
@@ -165,16 +170,18 @@ func (a *AutoscaleService) processServiceId(serviceId string, project *gql.Proje
 		"consecutive-high", consecutiveHighLoad,
 		"consecutive-low", consecutiveLowLoad,
 	)
-
 }
 
-func getValidServiceIds(registeredServices []repositories.Service, projectServiceNodes []gql.ServiceEdge) []string {
-	var validServiceIds []string
+func getValidServiceIds(registeredServices []repositories.Service, projectServiceNodes []gql.ServiceEdge) []ValidService {
+	var validServiceIds []ValidService
 
 	for _, registeredService := range registeredServices {
 		for _, service := range projectServiceNodes {
-			if registeredService.ServiceID == service.Node.Id {
-				validServiceIds = append(validServiceIds, service.Node.Id)
+			if registeredService.ServiceID == service.Node.Id && registeredService.Enabled {
+				validServiceIds = append(validServiceIds, ValidService{
+					ServiceId: service.Node.Id,
+					Service:   registeredService,
+				})
 			}
 		}
 	}

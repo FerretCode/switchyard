@@ -95,31 +95,21 @@ func (s *ServiceMonitorService) pollServiceId(serviceId string) error {
 
 	for _, deployment := range serviceData.Service.Deployments.Edges {
 		lastStatus, ok := s.DeploymentCache.Deployments[deployment.Node.Id]
+
 		if !ok {
-			s.DeploymentCache.Deployments[deployment.Node.Id] = deployment.Node.Status
-			lastStatus = deployment.Node.Status
-		}
+			s.Logger.Info("new deployment detected", "deployment-id", deployment.Node.Id, "status", deployment.Node.Status)
+		} else if lastStatus != deployment.Node.Status {
+			if slices.Contains(s.Config.ServiceMonitorInterestedStatusChanges, deployment.Node.Status) {
+				s.Logger.Info("deployment status change", "last-status", lastStatus, "new-status", deployment.Node.Status)
 
-		// a non-present key indicates that the deployment is new.
-		// we are still interested in sending status updates if
-		// the consuming service is interested in them, regardless
-		// of the deployment's age
-		if lastStatus != deployment.Node.Status || !ok {
-			interestingStatus := slices.Contains(s.Config.ServiceMonitorInterestedStatusChanges, deployment.Node.Status)
-			if !interestingStatus {
-				continue
-			}
-
-			s.Logger.Info("deployment status change", "last-status", lastStatus, "new-status", deployment.Node.Status)
-
-			err := s.WebhookService.SendDeploymentIncidentReport(
-				fmt.Sprintf("deployment status changed: %s -> %s", lastStatus, deployment.Node.Status),
-				serviceData.Service.Id,
-				deployment.Node.Id,
-				s.Config.RailwayEnvironmentId,
-			)
-			if err != nil {
-				return err
+				if err := s.WebhookService.SendDeploymentIncidentReport(
+					fmt.Sprintf("deployment status changed: %s -> %s", lastStatus, deployment.Node.Status),
+					serviceData.Service.Id,
+					deployment.Node.Id,
+					s.Config.RailwayEnvironmentId,
+				); err != nil {
+					return err
+				}
 			}
 		}
 
