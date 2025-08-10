@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,7 +13,11 @@ import (
 	"github.com/ferretcode/switchyard/configurator/internal/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	"github.com/pressly/goose/v3"
+
+	_ "github.com/lib/pq"
 )
 
 var logger *slog.Logger
@@ -34,6 +39,14 @@ func main() {
 	if err := env.Parse(&config); err != nil {
 		logger.Error("error parsing environment variables", "err", err)
 		return
+	}
+
+	if config.Environment == "prod" {
+		err := runMigrations(sqlx.MustConnect("postgres", config.DatabaseUrl))
+		if err != nil {
+			logger.Error("error running migrations", "err", err)
+			return
+		}
 	}
 
 	gqlClient, err := railway.NewClient(&railway.GraphQLClient{
@@ -66,4 +79,31 @@ func handleError(err error, w http.ResponseWriter, svc string) {
 		http.Error(w, "there was an error processing your request: "+err.Error(), http.StatusInternalServerError)
 		logger.Error("error processing request", "svc", svc, "err", err)
 	}
+}
+
+func runMigrations(db *sqlx.DB) error {
+	logger.Info("starting database migrations")
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("failed to set goose dialect: %w", err)
+	}
+
+	currentVersion, err := goose.GetDBVersion(db.DB)
+	if err != nil {
+		return fmt.Errorf("failed to get current database version: %w", err)
+	}
+	logger.Info("current database version", "version", currentVersion)
+
+	migrationsDir := "./migrations"
+	if err := goose.Up(db.DB, migrationsDir); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	newVersion, err := goose.GetDBVersion(db.DB)
+	if err != nil {
+		return fmt.Errorf("failed to get new database version: %w", err)
+	}
+	logger.Info("database migrations completed", "from_version", currentVersion, "to_version", newVersion)
+
+	return nil
 }
