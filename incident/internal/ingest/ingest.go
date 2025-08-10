@@ -64,12 +64,16 @@ func (i *IngestService) Ingest(w http.ResponseWriter, r *http.Request) error {
 		cutoff := now.Add(-i.Config.IncidentAnalysisWindow)
 
 		if lastIncidentSent.Before(cutoff) {
-			if log.Metadata["_service_id"] != "" && log.Metadata["_deployment_id"] != "" && log.Metadata["_environment_id"] != "" {
-				err := i.WebhookService.SendDeploymentIncidentReport(log.Message, log.Metadata["_service_id"], log.Metadata["_deployment_id"], log.Metadata["_environment_id"])
+			if log.Metadata["serviceId"] != "" && log.Metadata["deploymentId"] != "" && log.Metadata["projectId"] != "" {
+				i.Logger.Info("sending deployment incident report", "serviceId", log.Metadata["serviceId"], "deploymentId", log.Metadata["deploymentId"], "environmentId", log.Metadata["environmentId"])
+
+				err := i.WebhookService.SendDeploymentIncidentReport(log.Message, log.Metadata["serviceId"], log.Metadata["deploymentId"], log.Metadata["environmentId"])
 				if err != nil {
 					return err
 				}
 			} else {
+				i.Logger.Info("sending generic incident report")
+
 				err := i.WebhookService.SendGenericIncidentReport(log.Message)
 				if err != nil {
 					return err
@@ -92,11 +96,7 @@ func (i *IngestService) detectIncident() bool {
 	i.IncidentStats.ErrorWindow = filterRecent(i.IncidentStats.ErrorWindow, cutoff)
 	i.IncidentStats.ErrorWindow = append(i.IncidentStats.ErrorWindow, now)
 
-	if len(i.IncidentStats.ErrorWindow) > i.Config.IncidentAnalysisErrorThreshold {
-		return true
-	}
-
-	return false
+	return len(i.IncidentStats.ErrorWindow) > i.Config.IncidentAnalysisErrorThreshold
 }
 
 func filterRecent(timestamps []time.Time, cutoff time.Time) []time.Time {
