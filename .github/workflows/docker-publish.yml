@@ -86,7 +86,7 @@ jobs:
               uses: docker/build-push-action@v5
               with:
                   context: ./${{ matrix.service }}
-                  file: ./${{ matrix.service }}/Dockerfile.dev
+                  file: ./${{ matrix.service }}/Dockerfile
                   push: true
                   tags: |
                       ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BASE }}/${{ matrix.service }}:latest
