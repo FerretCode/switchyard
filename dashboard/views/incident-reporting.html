@@ -325,15 +325,19 @@
                 return reportElement;
             };
 
-            reports.deployment_reports.forEach((report) => {
-                const reportElement = createReportElement(report);
-                deploymentReportsContainer.appendChild(reportElement);
-            });
+            if (reports.deployment_reports) {
+                reports.deployment_reports.forEach((report) => {
+                    const reportElement = createReportElement(report);
+                    deploymentReportsContainer.appendChild(reportElement);
+                });
+            }
 
-            reports.general_reports.forEach((report) => {
-                const reportElement = createReportElement(report);
-                generalReportsContainer.appendChild(reportElement);
-            });
+            if (reports.general_reports) {
+                reports.general_reports.forEach((report) => {
+                    const reportElement = createReportElement(report);
+                    generalReportsContainer.appendChild(reportElement);
+                });
+            }
 
             updateIncidentRefreshTime();
         } catch (error) {

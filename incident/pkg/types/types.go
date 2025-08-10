@@ -24,9 +24,10 @@ type Config struct {
 }
 
 type Logline struct {
-	Message   string `json:"message"`
-	Severity  string `json:"severity"`
-	Timestamp string `json:"timestamp"`
+	Message   string            `json:"message"`
+	Severity  string            `json:"severity"`
+	Timestamp string            `json:"timestamp"`
+	Metadata  map[string]string `json:"_metadata,omitempty"`
 }
 
 type IncidentStats struct {

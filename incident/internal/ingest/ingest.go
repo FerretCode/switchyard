@@ -64,10 +64,16 @@ func (i *IngestService) Ingest(w http.ResponseWriter, r *http.Request) error {
 		cutoff := now.Add(-i.Config.IncidentAnalysisWindow)
 
 		if lastIncidentSent.Before(cutoff) {
-			i.Logger.Info("sending incident report")
-			err := i.WebhookService.SendGenericIncidentReport("error log frequency exceeded acceptable error threshold")
-			if err != nil {
-				return err
+			if log.Metadata["_service_id"] != "" && log.Metadata["_deployment_id"] != "" && log.Metadata["_environment_id"] != "" {
+				err := i.WebhookService.SendDeploymentIncidentReport(log.Message, log.Metadata["_service_id"], log.Metadata["_deployment_id"], log.Metadata["_environment_id"])
+				if err != nil {
+					return err
+				}
+			} else {
+				err := i.WebhookService.SendGenericIncidentReport(log.Message)
+				if err != nil {
+					return err
+				}
 			}
 			lastIncidentSent = now
 		}
