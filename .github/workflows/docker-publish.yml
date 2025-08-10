@@ -69,12 +69,14 @@ jobs:
                   username: ${{ github.actor }}
                   password: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: Set short SHA env var
+              run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
             - name: Extract Docker metadata for ${{ matrix.service }}
               id: meta
               uses: docker/metadata-action@v5
               with:
                   images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BASE }}/${{ matrix.service }}
-                  tags: latest,${{ github.sha }}
                   labels: org.opencontainers.image.source=${{ github.repository }}
 
             - name: Build and push ${{ matrix.service }} image
@@ -83,5 +85,7 @@ jobs:
                   context: ./${{ matrix.service }}
                   file: ./${{ matrix.service }}/Dockerfile.dev
                   push: true
-                  tags: ${{ steps.meta.outputs.tags }}
+                  tags: |
+                      ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BASE }}/${{ matrix.service }}:latest
+                      ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BASE }}/${{ matrix.service }}:${{ env.SHORT_SHA }}
                   labels: ${{ steps.meta.outputs.labels }}
