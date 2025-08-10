@@ -116,7 +116,7 @@ INSERT INTO services (
 ) VALUES (
     $1, $2
 )
-RETURNING service_id, job_name
+RETURNING service_id, job_name, enabled, railway_memory_upscale_threshold, railway_cpu_upscale_threshold, railway_memory_downscale_threshold, railway_cpu_downscale_threshold, upscale_cooldown, downscale_cooldown, min_replica_count, max_replica_count
 `
 
 type CreateServiceParams struct {
@@ -127,7 +127,19 @@ type CreateServiceParams struct {
 func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (Service, error) {
 	row := q.db.QueryRowContext(ctx, createService, arg.ServiceID, arg.JobName)
 	var i Service
-	err := row.Scan(&i.ServiceID, &i.JobName)
+	err := row.Scan(
+		&i.ServiceID,
+		&i.JobName,
+		&i.Enabled,
+		&i.RailwayMemoryUpscaleThreshold,
+		&i.RailwayCpuUpscaleThreshold,
+		&i.RailwayMemoryDownscaleThreshold,
+		&i.RailwayCpuDownscaleThreshold,
+		&i.UpscaleCooldown,
+		&i.DownscaleCooldown,
+		&i.MinReplicaCount,
+		&i.MaxReplicaCount,
+	)
 	return i, err
 }
 
@@ -206,19 +218,31 @@ func (q *Queries) GetJobReceiptByJobID(ctx context.Context, jobID string) (JobRe
 }
 
 const getService = `-- name: GetService :one
-SELECT service_id, job_name FROM services
+SELECT service_id, job_name, enabled, railway_memory_upscale_threshold, railway_cpu_upscale_threshold, railway_memory_downscale_threshold, railway_cpu_downscale_threshold, upscale_cooldown, downscale_cooldown, min_replica_count, max_replica_count FROM services
 WHERE service_id = $1 LIMIT 1
 `
 
 func (q *Queries) GetService(ctx context.Context, serviceID string) (Service, error) {
 	row := q.db.QueryRowContext(ctx, getService, serviceID)
 	var i Service
-	err := row.Scan(&i.ServiceID, &i.JobName)
+	err := row.Scan(
+		&i.ServiceID,
+		&i.JobName,
+		&i.Enabled,
+		&i.RailwayMemoryUpscaleThreshold,
+		&i.RailwayCpuUpscaleThreshold,
+		&i.RailwayMemoryDownscaleThreshold,
+		&i.RailwayCpuDownscaleThreshold,
+		&i.UpscaleCooldown,
+		&i.DownscaleCooldown,
+		&i.MinReplicaCount,
+		&i.MaxReplicaCount,
+	)
 	return i, err
 }
 
 const getServicesByJobName = `-- name: GetServicesByJobName :many
-SELECT service_id, job_name FROM services
+SELECT service_id, job_name, enabled, railway_memory_upscale_threshold, railway_cpu_upscale_threshold, railway_memory_downscale_threshold, railway_cpu_downscale_threshold, upscale_cooldown, downscale_cooldown, min_replica_count, max_replica_count FROM services
 WHERE job_name = $1
 ORDER BY service_id
 `
@@ -232,7 +256,19 @@ func (q *Queries) GetServicesByJobName(ctx context.Context, jobName sql.NullStri
 	var items []Service
 	for rows.Next() {
 		var i Service
-		if err := rows.Scan(&i.ServiceID, &i.JobName); err != nil {
+		if err := rows.Scan(
+			&i.ServiceID,
+			&i.JobName,
+			&i.Enabled,
+			&i.RailwayMemoryUpscaleThreshold,
+			&i.RailwayCpuUpscaleThreshold,
+			&i.RailwayMemoryDownscaleThreshold,
+			&i.RailwayCpuDownscaleThreshold,
+			&i.UpscaleCooldown,
+			&i.DownscaleCooldown,
+			&i.MinReplicaCount,
+			&i.MaxReplicaCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -291,7 +327,7 @@ func (q *Queries) ListJobReceipts(ctx context.Context, arg ListJobReceiptsParams
 }
 
 const listServices = `-- name: ListServices :many
-SELECT service_id, job_name FROM services
+SELECT service_id, job_name, enabled, railway_memory_upscale_threshold, railway_cpu_upscale_threshold, railway_memory_downscale_threshold, railway_cpu_downscale_threshold, upscale_cooldown, downscale_cooldown, min_replica_count, max_replica_count FROM services
 ORDER BY service_id
 `
 
@@ -304,7 +340,19 @@ func (q *Queries) ListServices(ctx context.Context) ([]Service, error) {
 	var items []Service
 	for rows.Next() {
 		var i Service
-		if err := rows.Scan(&i.ServiceID, &i.JobName); err != nil {
+		if err := rows.Scan(
+			&i.ServiceID,
+			&i.JobName,
+			&i.Enabled,
+			&i.RailwayMemoryUpscaleThreshold,
+			&i.RailwayCpuUpscaleThreshold,
+			&i.RailwayMemoryDownscaleThreshold,
+			&i.RailwayCpuDownscaleThreshold,
+			&i.UpscaleCooldown,
+			&i.DownscaleCooldown,
+			&i.MinReplicaCount,
+			&i.MaxReplicaCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -319,7 +367,7 @@ func (q *Queries) ListServices(ctx context.Context) ([]Service, error) {
 }
 
 const listServicesWithJobs = `-- name: ListServicesWithJobs :many
-SELECT service_id, job_name FROM services
+SELECT service_id, job_name, enabled, railway_memory_upscale_threshold, railway_cpu_upscale_threshold, railway_memory_downscale_threshold, railway_cpu_downscale_threshold, upscale_cooldown, downscale_cooldown, min_replica_count, max_replica_count FROM services
 WHERE job_name IS NOT NULL
 ORDER BY service_id
 `
@@ -333,7 +381,19 @@ func (q *Queries) ListServicesWithJobs(ctx context.Context) ([]Service, error) {
 	var items []Service
 	for rows.Next() {
 		var i Service
-		if err := rows.Scan(&i.ServiceID, &i.JobName); err != nil {
+		if err := rows.Scan(
+			&i.ServiceID,
+			&i.JobName,
+			&i.Enabled,
+			&i.RailwayMemoryUpscaleThreshold,
+			&i.RailwayCpuUpscaleThreshold,
+			&i.RailwayMemoryDownscaleThreshold,
+			&i.RailwayCpuDownscaleThreshold,
+			&i.UpscaleCooldown,
+			&i.DownscaleCooldown,
+			&i.MinReplicaCount,
+			&i.MaxReplicaCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -345,6 +405,59 @@ func (q *Queries) ListServicesWithJobs(ctx context.Context) ([]Service, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const setServiceJobName = `-- name: SetServiceJobName :one
+UPDATE services
+SET job_name = $1
+WHERE service_id = $2
+RETURNING
+    service_id,
+    job_name,
+    railway_memory_upscale_threshold,
+    railway_cpu_upscale_threshold,
+    railway_memory_downscale_threshold,
+    railway_cpu_downscale_threshold,
+    upscale_cooldown,
+    downscale_cooldown,
+    min_replica_count,
+    max_replica_count
+`
+
+type SetServiceJobNameParams struct {
+	JobName   sql.NullString `json:"job_name"`
+	ServiceID string         `json:"service_id"`
+}
+
+type SetServiceJobNameRow struct {
+	ServiceID                       string         `json:"service_id"`
+	JobName                         sql.NullString `json:"job_name"`
+	RailwayMemoryUpscaleThreshold   float64        `json:"railway_memory_upscale_threshold"`
+	RailwayCpuUpscaleThreshold      float64        `json:"railway_cpu_upscale_threshold"`
+	RailwayMemoryDownscaleThreshold float64        `json:"railway_memory_downscale_threshold"`
+	RailwayCpuDownscaleThreshold    float64        `json:"railway_cpu_downscale_threshold"`
+	UpscaleCooldown                 string         `json:"upscale_cooldown"`
+	DownscaleCooldown               string         `json:"downscale_cooldown"`
+	MinReplicaCount                 int32          `json:"min_replica_count"`
+	MaxReplicaCount                 int32          `json:"max_replica_count"`
+}
+
+func (q *Queries) SetServiceJobName(ctx context.Context, arg SetServiceJobNameParams) (SetServiceJobNameRow, error) {
+	row := q.db.QueryRowContext(ctx, setServiceJobName, arg.JobName, arg.ServiceID)
+	var i SetServiceJobNameRow
+	err := row.Scan(
+		&i.ServiceID,
+		&i.JobName,
+		&i.RailwayMemoryUpscaleThreshold,
+		&i.RailwayCpuUpscaleThreshold,
+		&i.RailwayMemoryDownscaleThreshold,
+		&i.RailwayCpuDownscaleThreshold,
+		&i.UpscaleCooldown,
+		&i.DownscaleCooldown,
+		&i.MinReplicaCount,
+		&i.MaxReplicaCount,
+	)
+	return i, err
 }
 
 const updateJobReceiptByID = `-- name: UpdateJobReceiptByID :one
@@ -447,7 +560,7 @@ const updateService = `-- name: UpdateService :one
 UPDATE services
 SET job_name = $2
 WHERE service_id = $1
-RETURNING service_id, job_name
+RETURNING service_id, job_name, enabled, railway_memory_upscale_threshold, railway_cpu_upscale_threshold, railway_memory_downscale_threshold, railway_cpu_downscale_threshold, upscale_cooldown, downscale_cooldown, min_replica_count, max_replica_count
 `
 
 type UpdateServiceParams struct {
@@ -458,6 +571,18 @@ type UpdateServiceParams struct {
 func (q *Queries) UpdateService(ctx context.Context, arg UpdateServiceParams) (Service, error) {
 	row := q.db.QueryRowContext(ctx, updateService, arg.ServiceID, arg.JobName)
 	var i Service
-	err := row.Scan(&i.ServiceID, &i.JobName)
+	err := row.Scan(
+		&i.ServiceID,
+		&i.JobName,
+		&i.Enabled,
+		&i.RailwayMemoryUpscaleThreshold,
+		&i.RailwayCpuUpscaleThreshold,
+		&i.RailwayMemoryDownscaleThreshold,
+		&i.RailwayCpuDownscaleThreshold,
+		&i.UpscaleCooldown,
+		&i.DownscaleCooldown,
+		&i.MinReplicaCount,
+		&i.MaxReplicaCount,
+	)
 	return i, err
 }

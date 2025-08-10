@@ -22,6 +22,15 @@ type JobReceipt struct {
 }
 
 type Service struct {
-	ServiceID string         `json:"service_id"`
-	JobName   sql.NullString `json:"job_name"`
+	ServiceID                       string         `json:"service_id"`
+	JobName                         sql.NullString `json:"job_name"`
+	Enabled                         bool           `json:"enabled"`
+	RailwayMemoryUpscaleThreshold   float64        `json:"railway_memory_upscale_threshold"`
+	RailwayCpuUpscaleThreshold      float64        `json:"railway_cpu_upscale_threshold"`
+	RailwayMemoryDownscaleThreshold float64        `json:"railway_memory_downscale_threshold"`
+	RailwayCpuDownscaleThreshold    float64        `json:"railway_cpu_downscale_threshold"`
+	UpscaleCooldown                 string         `json:"upscale_cooldown"`
+	DownscaleCooldown               string         `json:"downscale_cooldown"`
+	MinReplicaCount                 int32          `json:"min_replica_count"`
+	MaxReplicaCount                 int32          `json:"max_replica_count"`
 }

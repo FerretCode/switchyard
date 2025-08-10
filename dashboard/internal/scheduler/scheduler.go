@@ -66,6 +66,6 @@ func (s *SchedulerService) GetJobStatistics(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *SchedulerService) UnregisterWorkerService(w http.ResponseWriter, r *http.Request) error {
-	url := s.Config.SchedulerServiceUrl + "/scheduler/unregister-worker-service"
+	url := s.Config.SchedulerServiceUrl + "/scheduler/unregister-worker-service/" + chi.URLParam(r, "id")
 	return PropagateRequest(w, r, "DELETE", url)
 }

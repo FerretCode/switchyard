@@ -103,7 +103,7 @@ func main() {
 				handleError(schedulerService.GetJobStatistics(w, r), w, "scheduler/get-job-statistics")
 			})
 
-			r.Delete("/unregister-worker-service", func(w http.ResponseWriter, r *http.Request) {
+			r.Delete("/unregister-worker-service/{id}", func(w http.ResponseWriter, r *http.Request) {
 				handleError(schedulerService.UnregisterWorkerService(w, r), w, "scheduler/unregister-worker-service")
 			})
 		})

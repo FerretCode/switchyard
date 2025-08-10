@@ -109,3 +109,19 @@ FROM job_receipts
 WHERE job_name = $1
 GROUP BY job_name
 LIMIT 1;
+
+-- name: SetServiceJobName :one
+UPDATE services
+SET job_name = $1
+WHERE service_id = $2
+RETURNING
+    service_id,
+    job_name,
+    railway_memory_upscale_threshold,
+    railway_cpu_upscale_threshold,
+    railway_memory_downscale_threshold,
+    railway_cpu_downscale_threshold,
+    upscale_cooldown,
+    downscale_cooldown,
+    min_replica_count,
+    max_replica_count;

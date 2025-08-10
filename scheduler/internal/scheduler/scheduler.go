@@ -51,36 +51,38 @@ func (s *SchedulerService) GetJobStatistics(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *SchedulerService) RegisterWorkerService(w http.ResponseWriter, r *http.Request) error {
-	requestBytes, err := io.ReadAll(r.Body)
+	serviceId := chi.URLParam(r, "id")
+
+	existingService, err := s.Queries.GetService(s.Context, serviceId)
 	if err != nil {
-		return fmt.Errorf("error reading request body: %w", err)
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("service with id %s does not exist", serviceId)
+		}
+		return fmt.Errorf("error fetching service from database: %w", err)
 	}
 
-	registerWorkerServiceRequest := RegisterWorkerServiceRequest{}
-	if err := json.Unmarshal(requestBytes, &registerWorkerServiceRequest); err != nil {
-		return fmt.Errorf("error parsing request body: %w", err)
-	}
+	// we want to keep the already existing service options, so we'll just remove the job name
+	if existingService.Enabled {
+		_, err = s.Queries.SetServiceJobName(s.Context, repositories.SetServiceJobNameParams{
+			ServiceID: serviceId,
+			JobName:   sql.NullString{String: "", Valid: false},
+		})
+		if err != nil {
+			return fmt.Errorf("error disabling service: %w", err)
+		}
 
-	if registerWorkerServiceRequest.ServiceId == "" {
-		http.Error(w, "service id must not be empty", http.StatusBadRequest)
+		w.WriteHeader(200)
 		return nil
 	}
 
-	if registerWorkerServiceRequest.JobName == "" {
-		http.Error(w, "job name must not be empty", http.StatusBadRequest)
-		return nil
-	}
-
-	_, err = s.Queries.CreateService(s.Context, repositories.CreateServiceParams{
-		ServiceID: registerWorkerServiceRequest.ServiceId,
-		JobName:   sql.NullString{String: registerWorkerServiceRequest.JobName, Valid: true},
-	})
+	err = s.Queries.DeleteService(s.Context, serviceId)
 	if err != nil {
-		return fmt.Errorf("error creating service: %w", err)
+		return fmt.Errorf("error deleting service: %w", err)
 	}
 
 	w.WriteHeader(200)
 	return nil
+
 }
 
 func (s *SchedulerService) UnregisterWorkerService(w http.ResponseWriter, r *http.Request) error {
