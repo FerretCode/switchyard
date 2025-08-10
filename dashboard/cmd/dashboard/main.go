@@ -80,8 +80,7 @@ func main() {
 	})
 
 	r.Route("/dashboard", func(r chi.Router) {
-		// TODO: reenable
-		// r.Use(authService.RequireAuth)
+		r.Use(authService.RequireAuth)
 
 		r.Get("/home", func(w http.ResponseWriter, r *http.Request) {
 			handleError(templates.ExecuteTemplate(w, "index.html", nil), w, "dashboard/render")
