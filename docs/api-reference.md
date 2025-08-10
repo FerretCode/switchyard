@@ -180,7 +180,7 @@ Request body:
     "enabled": true,
     "rules": [
         {
-            field: "test-field",
+            "field": "test-field",
             "operator": "equals",
             "value": "test"
         }
