@@ -69,7 +69,7 @@ Find some example worker code [here.](./demo/worker/main.py)
 
 ## One-Click Deploy 📥
 
--   Deploy on Railway in one click: [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/j9GPx_?referralCode=uFhfCw)
+-   Deploy on Railway in one click: [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/switchyard?referralCode=uFhfCw)
 -   Make sure you deploy in the same environment as your targeted application.
 
 ## Developing Locally 🧪
