@@ -2,6 +2,8 @@
 
 A plug-and-play Railway template for feature flags, autoscaling, worker scheduling, and observability.
 
+#### Read the whitepaper [here.](./WHITEPAPER.md)
+
 ## Overview 📦
 
 -   Manage feature flags with simple configuration and robust, contextual rules
@@ -67,7 +69,7 @@ Find some example worker code [here.](./demo/worker/main.py)
 
 ## One-Click Deploy 📥
 
--   Deploy on Railway in one click:
+-   Deploy on Railway in one click: [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/j9GPx_?referralCode=uFhfCw)
 -   Make sure you deploy in the same environment as your targeted application.
 
 ## Developing Locally 🧪
@@ -78,6 +80,7 @@ Find some example worker code [here.](./demo/worker/main.py)
 git clone https://github.com/ferretcode/switchyard.git
 cd switchyard
 docker compose up --build
+goose up # in another shell
 ```
 
 Then:
