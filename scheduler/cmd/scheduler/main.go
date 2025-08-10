@@ -49,11 +49,13 @@ func main() {
 	}
 	defer conn.Close()
 
-	redisConn := redis.NewClient(&redis.Options{
-		Addr:     config.CacheUrl,
-		Password: "",
-		DB:       0,
-	})
+	options, err := redis.ParseURL(config.CacheUrl)
+	if err != nil {
+		logger.Error("error parsing redis url", "err", err)
+		return
+	}
+
+	redisConn := redis.NewClient(options)
 
 	messageBusConn, err := amqp.Dial(config.MessageBusUrl)
 	if err != nil {
