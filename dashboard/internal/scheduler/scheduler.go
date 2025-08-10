@@ -51,7 +51,7 @@ func PropagateRequest(w http.ResponseWriter, r *http.Request, method, url string
 }
 
 func (s *SchedulerService) RegisterWorkerService(w http.ResponseWriter, r *http.Request) error {
-	url := s.Config.SchedulerServiceUrl + "/scheduler/register-worker-service"
+	url := s.Config.SchedulerServiceUrl + "/autoscaler/upsert-service"
 	return PropagateRequest(w, r, "POST", url)
 }
 
