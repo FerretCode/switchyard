@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . ./
 
-RUN go build -ldflags "-w -s" -o main
+RUN go build -ldflags "-w -s" -o main ./cmd/feature-lags
 
 FROM gcr.io/distroless/static
 
