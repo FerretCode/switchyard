@@ -1,5 +1,7 @@
 # Switchyard: An Infrastructure Management Template for Scalable Applications
 
+**See more: ** https://github.com/ferretcode/switchyard
+
 ## Executive Summary
 
 Modern applications that require scalable infrastructure to handle large amounts of user traffic often face increasing levels of complexity in managing distributed systems, feature rollouts, and application reliability. Teams get bogged down with complicated and fragmented tooling when building systems to manage their applications and infrastructure, leading to a high overall system complexity and slower development.
