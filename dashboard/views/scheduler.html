@@ -292,7 +292,7 @@
         try {
             const res = await fetch(
                 `/api/scheduler/unregister-worker-service/${id}`,
-                {method: "POST"}
+                {method: "DELETE"}
             );
 
             if (!res.ok) throw new Error("Failed to unregister worker service");
