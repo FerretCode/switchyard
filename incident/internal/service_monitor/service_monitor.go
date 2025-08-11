@@ -37,7 +37,7 @@ func NewServiceMonitorService(logger *slog.Logger, incidentStats *types.Incident
 }
 
 func (s *ServiceMonitorService) MonitorServices(done chan bool) {
-	ticker := time.NewTicker(time.Duration(s.Config.ServiceMonitorPollingRate) * time.Second)
+	ticker := time.NewTicker(s.Config.ServiceMonitorPollingRate)
 
 	for {
 		select {
@@ -120,7 +120,7 @@ func (s *ServiceMonitorService) pollServiceId(serviceId string) error {
 }
 
 func (s *ServiceMonitorService) getServiceDataForServiceId(serviceId string) (gql.ServiceData, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.Config.ServiceMonitorPollingTimeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), s.Config.ServiceMonitorPollingTimeout)
 	defer cancel()
 
 	res, err := s.GraphQLClient.Client.ExecRaw(ctx, gql.ServiceQuery, map[string]any{

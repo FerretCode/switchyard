@@ -13,8 +13,8 @@ type Config struct {
 	MessageBusUrl                         string        `env:"MESSAGE_BUS_URL" json:"message_bus_url,omitempty"`
 	IncidentAnalysisWindow                time.Duration `env:"INCIDENT_ANALYSIS_WINDOW" json:"incident_analysis_window,omitempty"`
 	IncidentAnalysisErrorThreshold        int           `env:"INCIDENT_ANALYSIS_ERROR_THRESHOLD" json:"incident_analysis_error_threshold,omitempty"`
-	ServiceMonitorPollingRate             int           `env:"SERVICE_MONITOR_POLLING_RATE" json:"service_monitor_polling_rate,omitempty"`
-	ServiceMonitorPollingTimeout          int           `env:"SERVICE_MONITOR_POLLING_TIMEOUT" json:"service_monitor_polling_timeout,omitempty"`
+	ServiceMonitorPollingRate             time.Duration `env:"SERVICE_MONITOR_POLLING_RATE" json:"service_monitor_polling_rate,omitempty"`
+	ServiceMonitorPollingTimeout          time.Duration `env:"SERVICE_MONITOR_POLLING_TIMEOUT" json:"service_monitor_polling_timeout,omitempty"`
 	ServiceMonitorInterestedStatusChanges []string      `env:"SERVICE_MONITOR_INTERESTED_STATUS_CHANGES" json:"service_monitor_interested_status_changes,omitempty"`
 	RailwayApiKey                         string        `env:"RAILWAY_API_KEY" json:"railway_api_key,omitempty"`
 	RailwayEnvironmentId                  string        `env:"RAILWAY_ENVIRONMENT_ID" json:"railway_environment_id,omitempty"`
