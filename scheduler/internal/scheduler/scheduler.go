@@ -88,7 +88,10 @@ func (s *SchedulerService) RegisterWorkerService(w http.ResponseWriter, r *http.
 func (s *SchedulerService) UnregisterWorkerService(w http.ResponseWriter, r *http.Request) error {
 	serviceId := chi.URLParam(r, "id")
 
-	err := s.Queries.DeleteService(s.Context, serviceId)
+	_, err := s.Queries.SetServiceJobName(s.Context, repositories.SetServiceJobNameParams{
+		ServiceID: serviceId,
+		JobName:   sql.NullString{Valid: false},
+	})
 	if err != nil {
 		return fmt.Errorf("error deleting service: %w", err)
 	}

@@ -33,33 +33,17 @@
 
         <div class="form-control">
             <label class="label">Job Name</label>
-            <input
-                type="text"
-                id="register-job-name"
-                name="job_name"
-                class="input input-bordered"
-                required
-            />
+            <input type="text" id="register-job-name" name="job_name" class="input input-bordered" required />
         </div>
 
         <div class="form-control mt-2">
             <label class="label">Service ID</label>
-            <input
-                type="text"
-                id="register-service-id"
-                name="service_id"
-                class="input input-bordered"
-                required
-            />
+            <input type="text" id="register-service-id" name="service_id" class="input input-bordered" required />
         </div>
 
         <div class="modal-action">
             <button type="submit" class="btn btn-primary">Register</button>
-            <button
-                type="button"
-                class="btn"
-                onclick="document.getElementById('register-modal').close()"
-            >
+            <button type="button" class="btn" onclick="document.getElementById('register-modal').close()">
                 Cancel
             </button>
         </div>
@@ -75,31 +59,17 @@
 
         <div class="form-control mt-2">
             <label class="label">Job Name</label>
-            <input
-                type="text"
-                id="schedule-job-name"
-                name="job_name"
-                class="input input-bordered"
-                required
-            />
+            <input type="text" id="schedule-job-name" name="job_name" class="input input-bordered" required />
         </div>
 
         <div class="form-control mt-2">
             <label class="label">Context (JSON)</label>
-            <textarea
-                id="schedule-payload"
-                name="payload"
-                class="textarea textarea-bordered"
-            ></textarea>
+            <textarea id="schedule-payload" name="payload" class="textarea textarea-bordered"></textarea>
         </div>
 
         <div class="modal-action">
             <button type="submit" class="btn btn-primary">Schedule</button>
-            <button
-                type="button"
-                class="btn"
-                onclick="document.getElementById('schedule-modal').close()"
-            >
+            <button type="button" class="btn" onclick="document.getElementById('schedule-modal').close()">
                 Cancel
             </button>
         </div>
@@ -146,36 +116,30 @@
                                 </div>
                             </div>
                             <div>
-                                <h3 class="text-xl font-semibold">${
-                                    service.job_name || service.service_name
-                                }</h3>
-                                <p class="text-base-content/70 font-mono text-sm">${
-                                    service.service_id
-                                }</p>
+                                <h3 class="text-xl font-semibold">${service.job_name || service.service_name
+                }</h3>
+                                <p class="text-base-content/70 font-mono text-sm">${service.service_id
+                }</p>
                             </div>
                             <button class="btn btn-error btn-sm unregister-btn">Unregister</button>
                         </div>
                         <div class="flex items-center gap-3">
-                            <div class="badge badge-${
-                                service.job_name === "" ? "error" : "success"
-                            }">
-                                <i class="mr-2 fas fa-${
-                                    service.job_name === ""
-                                        ? "exclamation-circle"
-                                        : "check-circle"
-                                }"></i>
-                                ${
-                                    service.job_name === ""
-                                        ? "Unregistered"
-                                        : "Registered"
-                                }
+                            <div class="badge badge-${service.job_name === "" ? "error" : "success"
+                }">
+                                <i class="mr-2 fas fa-${service.job_name === ""
+                    ? "exclamation-circle"
+                    : "check-circle"
+                }"></i>
+                                ${service.job_name === ""
+                    ? "Unregistered"
+                    : "Registered"
+                }
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="stats-container-${
-                        service.service_id
-                    }">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="stats-container-${service.service_id
+                }">
                         <!-- Stats cards will go here -->
                         <div class="stat bg-base-200 rounded-lg animate-pulse">
                             <div class="stat-title text-xs">Loading stats...</div>
@@ -221,16 +185,15 @@
 
                 <div class="stat bg-base-200 rounded-lg">
                     <div class="stat-title text-xs">Failures</div>
-                    <div class="stat-value text-error">${
-                        stats.error_count
-                    }</div>
+                    <div class="stat-value text-error">${stats.error_count
+                }</div>
                 </div>
 
                 <div class="stat bg-base-200 rounded-lg">
                     <div class="stat-title text-xs">Retries (avg)</div>
                     <div class="stat-value">${parseFloat(
-                        stats.avg_retry_count
-                    ).toFixed(2)}</div>
+                    stats.avg_retry_count
+                ).toFixed(2)}</div>
                 </div>
             `;
         }
@@ -261,7 +224,7 @@
                     "/api/scheduler/register-worker-service",
                     {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: {"Content-Type": "application/json"},
                         body: JSON.stringify(payload),
                     }
                 );
@@ -287,7 +250,7 @@
             try {
                 const res = await fetch("/api/scheduler/schedule-job", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {"Content-Type": "application/json"},
                     body: JSON.stringify(payload),
                 });
 
@@ -329,7 +292,7 @@
         try {
             const res = await fetch(
                 `/scheduler/unregister-worker-service/${id}`,
-                { method: "DELETE" }
+                {method: "POST"}
             );
 
             if (!res.ok) throw new Error("Failed to unregister worker service");
