@@ -1,6 +1,6 @@
 # Switchyard: An Infrastructure Management Template for Scalable Applications
 
-**See more: ** https://github.com/ferretcode/switchyard
+**See more:** https://github.com/ferretcode/switchyard
 
 ## Executive Summary
 
